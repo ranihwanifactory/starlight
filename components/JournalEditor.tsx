@@ -1,18 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { JournalEntry, UserProfile } from '../types';
 import { db, storage } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Camera, Sparkles, Save, X, Calendar, MapPin, Telescope, Users } from 'lucide-react';
 import { enhanceJournalEntry } from '../services/geminiService';
 
 interface JournalEditorProps {
   user: UserProfile;
+  initialData?: JournalEntry; // Optional prop for editing
   onCancel: () => void;
   onSave: () => void;
 }
 
-const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave }) => {
+const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCancel, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [title, setTitle] = useState('');
@@ -26,6 +27,22 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave })
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load initial data if editing
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title);
+      setDate(initialData.date);
+      setLocation(initialData.location);
+      setEquipment(initialData.equipment);
+      setTarget(initialData.target);
+      setDescription(initialData.description);
+      setObservers(initialData.observers);
+      if (initialData.imageUrl) {
+        setPreviewUrl(initialData.imageUrl);
+      }
+    }
+  }, [initialData]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -56,16 +73,16 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave })
 
     setLoading(true);
     try {
-      let imageUrl = '';
+      let imageUrl = initialData?.imageUrl || '';
 
       if (imageFile) {
-        // Simple unique path based on timestamp
+        // Upload new image
         const storageRef = ref(storage, `journal_images/${user.uid}/${Date.now()}_${imageFile.name}`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         imageUrl = await getDownloadURL(snapshot.ref);
       }
 
-      const newEntry: JournalEntry = {
+      const entryData: Partial<JournalEntry> = {
         title,
         date,
         location,
@@ -74,12 +91,23 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave })
         description,
         observers,
         imageUrl,
-        createdAt: Date.now(),
-        userId: user.uid,
         authorName: user.displayName || '익명의 천문학자',
       };
 
-      await addDoc(collection(db, 'journals'), newEntry);
+      if (initialData && initialData.id) {
+        // Update existing entry
+        const entryRef = doc(db, 'journals', initialData.id);
+        await updateDoc(entryRef, entryData);
+      } else {
+        // Create new entry
+        const newEntry: JournalEntry = {
+          ...entryData as JournalEntry,
+          createdAt: Date.now(),
+          userId: user.uid,
+        };
+        await addDoc(collection(db, 'journals'), newEntry);
+      }
+
       onSave();
     } catch (error) {
       console.error("Error saving entry:", error);
@@ -90,9 +118,11 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave })
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-space-800/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl p-6 md:p-8 animate-fade-in">
+    <div className="max-w-4xl mx-auto bg-space-800/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl p-6 md:p-8 animate-fade-in relative z-20 my-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-display text-white">새로운 관측 일지</h2>
+        <h2 className="text-3xl font-display text-white">
+          {initialData ? '관측 일지 수정' : '새로운 관측 일지'}
+        </h2>
         <button onClick={onCancel} className="text-gray-400 hover:text-white transition-colors">
           <X size={28} />
         </button>
@@ -109,7 +139,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave })
           ) : (
             <div className="flex flex-col items-center text-gray-400 group-hover:text-space-accent">
               <Camera size={48} className="mb-2" />
-              <p>클릭하여 천체 사진 업로드</p>
+              <p>클릭하여 천체 사진 {initialData ? '변경' : '업로드'}</p>
             </div>
           )}
           <input 
@@ -216,9 +246,9 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave })
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
-            rows={6}
+            rows={8}
             placeholder="무엇을 보았나요? 색상, 밝기, 대기의 상태 등을 자유롭게 적어보세요..."
-            className="w-full bg-space-900/50 border border-gray-700 text-white p-4 rounded-lg focus:border-space-accent focus:outline-none font-serif leading-relaxed"
+            className="w-full bg-space-900/50 border border-gray-700 text-white p-4 rounded-lg focus:border-space-accent focus:outline-none font-serif leading-loose"
           ></textarea>
         </div>
 
@@ -236,7 +266,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, onCancel, onSave })
             className="px-8 py-2 rounded-lg bg-space-accent text-space-900 font-bold hover:bg-yellow-500 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(212,175,55,0.4)]"
           >
             <Save size={18} />
-            {loading ? '저장 중...' : '일지 저장'}
+            {loading ? '저장 중...' : (initialData ? '수정 완료' : '일지 저장')}
           </button>
         </div>
       </form>
