@@ -24,10 +24,16 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
       // Try to share with file if image exists and API supports it
       if (entry.imageUrl && navigator.share) {
         try {
-          // Fetch the image to create a File object
-          const response = await fetch(entry.imageUrl);
+          // Fetch the image to create a File object with CORS mode
+          const response = await fetch(entry.imageUrl, { mode: 'cors' });
           const blob = await response.blob();
-          const file = new File([blob], "observation.jpg", { type: blob.type });
+          
+          // Determine file extension and type
+          const fileType = blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
+          const extension = fileType.split('/')[1] || 'jpg';
+          const fileName = `starlight-${Date.now()}.${extension}`;
+
+          const file = new File([blob], fileName, { type: fileType });
 
           const shareData: ShareData = {
             title: shareTitle,
@@ -39,6 +45,8 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
           if (navigator.canShare && navigator.canShare(shareData)) {
             await navigator.share(shareData);
             return;
+          } else {
+            console.warn("Navigator.canShare returned false for files");
           }
         } catch (fileError) {
           console.warn("File sharing failed or not supported, falling back to text/url", fileError);

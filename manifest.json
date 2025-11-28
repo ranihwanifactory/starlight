@@ -1,0 +1,15 @@
+{
+  "short_name": "Starlight",
+  "name": "Starlight Journal",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluency/512/telescope.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0B0D17",
+  "background_color": "#0B0D17"
+}
