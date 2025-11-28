@@ -41,7 +41,7 @@ const App: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  // Data Fetching
+  // Data Fetching & Deep Linking
   useEffect(() => {
     const q = query(collection(db, 'journals'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -50,6 +50,17 @@ const App: React.FC = () => {
         ...doc.data()
       } as JournalEntry));
       setEntries(fetchedEntries);
+
+      // Deep Link Check
+      const params = new URLSearchParams(window.location.search);
+      const entryId = params.get('entry');
+      if (entryId) {
+        const foundEntry = fetchedEntries.find(e => e.id === entryId);
+        if (foundEntry) {
+          setSelectedEntry(foundEntry);
+          setView(ViewState.DETAIL);
+        }
+      }
     });
     return unsubscribe;
   }, []);
@@ -77,17 +88,19 @@ const App: React.FC = () => {
     setSelectedEntry(null);
     setEditingEntry(undefined);
     setView(ViewState.HOME);
+    // Clear URL params on back to home
+    window.history.pushState({}, '', window.location.pathname);
   };
 
   const handleEditEntry = (entry: JournalEntry) => {
     setEditingEntry(entry);
-    setView(ViewState.CREATE); // Reuse the CREATE view for editing
+    setView(ViewState.CREATE);
   };
 
   const handleDeleteEntry = async (entryId: string) => {
     try {
       await deleteDoc(doc(db, "journals", entryId));
-      handleBackToHome(); // Return home after delete
+      handleBackToHome();
     } catch (error) {
       console.error("Error deleting document: ", error);
       alert("삭제 중 오류가 발생했습니다.");
@@ -100,18 +113,18 @@ const App: React.FC = () => {
       
       {/* Navigation - Hide on Detail view for full immersion, or keep minimalistic */}
       {view !== ViewState.DETAIL && (
-        <nav className="fixed top-0 left-0 right-0 z-40 bg-space-900/80 backdrop-blur-md border-b border-white/5 h-24 transition-all duration-300">
+        <nav className="fixed top-0 left-0 right-0 z-40 bg-space-900/80 backdrop-blur-md border-b border-space-accent/20 h-24 transition-all duration-300">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
             <div className="flex items-center gap-4 cursor-pointer group" onClick={handleBackToHome}>
-              <div className="bg-space-accent p-2.5 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] group-hover:shadow-[0_0_25px_rgba(212,175,55,0.5)] transition-all duration-300">
-                <Rocket className="text-space-900 transform -rotate-45 group-hover:-translate-y-1 transition-transform" size={28} />
+              <div className="bg-space-accent/10 p-2.5 rounded-full border border-space-accent/50 shadow-[0_0_15px_rgba(0,212,255,0.3)] group-hover:shadow-[0_0_25px_rgba(0,212,255,0.6)] transition-all duration-300">
+                <Rocket className="text-space-accent transform -rotate-45 group-hover:-translate-y-1 transition-transform" size={28} />
               </div>
               <div className="flex flex-col">
-                <h1 className="text-2xl md:text-3xl font-display text-white tracking-[0.15em] leading-none uppercase drop-shadow-md">
-                  Starlight<span className="text-space-accent">.</span>Journal
+                <h1 className="text-2xl md:text-3xl font-display text-white tracking-[0.1em] leading-none uppercase drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]">
+                  Starlight<span className="text-space-accent">.</span>Log
                 </h1>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-bold mt-1 group-hover:text-space-accent transition-colors">
-                  Dad & Son Cosmic Log
+                <p className="text-[10px] uppercase tracking-[0.3em] text-space-accent font-bold mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                  Interstellar Archive
                 </p>
               </div>
             </div>
@@ -119,8 +132,8 @@ const App: React.FC = () => {
             <div className="flex items-center gap-4">
               {user ? (
                 <div className="flex items-center gap-4">
-                  <span className="hidden md:block text-sm text-gray-400 font-serif italic">
-                    Commander {user.displayName || 'Guest'}
+                  <span className="hidden md:block text-sm text-space-accent font-display tracking-wider">
+                    CMDR. {user.displayName || 'GUEST'}
                   </span>
                   <button 
                     onClick={handleLogout}
@@ -130,16 +143,17 @@ const App: React.FC = () => {
                     <LogOut size={20} />
                   </button>
                   {user.photoURL && (
-                    <img src={user.photoURL} alt="Profile" className="w-9 h-9 rounded-full border border-space-accent shadow-sm" />
+                    <img src={user.photoURL} alt="Profile" className="w-9 h-9 rounded-full border-2 border-space-accent shadow-[0_0_10px_rgba(0,212,255,0.4)]" />
                   )}
                 </div>
               ) : (
                 <button 
                   onClick={() => setAuthModalOpen(true)}
-                  className="flex items-center gap-2 text-sm font-bold text-white hover:text-space-accent transition-colors px-4 py-2 rounded-full hover:bg-white/5"
+                  className="flex items-center gap-2 text-sm font-bold text-space-900 bg-space-accent hover:bg-white transition-all px-6 py-2 rounded-none clip-path-polygon"
+                  style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0% 100%)' }}
                 >
                   <User size={18} />
-                  로그인
+                  LOGIN
                 </button>
               )}
             </div>
@@ -155,18 +169,20 @@ const App: React.FC = () => {
             {/* Header / Hero Section */}
             <header className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-8 animate-fade-in">
                <div>
-                  <h2 className="text-4xl md:text-6xl font-display text-white mb-3 tracking-wide">관측 기록</h2>
-                  <p className="text-gray-400 font-serif text-lg md:text-xl max-w-xl leading-relaxed">
-                    별 하나에 추억 하나, 아빠와 아들이 함께 기록하는 우주의 신비.
+                  <h2 className="text-4xl md:text-6xl font-display text-white mb-3 tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)]">
+                    Mission Logs
+                  </h2>
+                  <p className="text-space-accent/80 font-sans text-lg md:text-xl max-w-xl leading-relaxed tracking-wide">
+                    Recording the wonders of the cosmos, one star at a time.
                   </p>
                </div>
                
                <button 
                  onClick={handleCreateClick}
-                 className="group bg-space-accent hover:bg-white text-space-900 px-8 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center gap-3 transform hover:scale-105 active:scale-95"
+                 className="group bg-transparent border border-space-accent text-space-accent hover:bg-space-accent hover:text-space-900 px-8 py-3 font-display tracking-widest font-bold transition-all shadow-[0_0_20px_rgba(0,212,255,0.2)] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] flex items-center gap-3 uppercase"
                >
                  <Plus size={22} className="group-hover:rotate-90 transition-transform duration-300" />
-                 새 기록 작성
+                 New Entry
                </button>
             </header>
 
