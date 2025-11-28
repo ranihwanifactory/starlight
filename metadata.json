@@ -1,0 +1,8 @@
+{
+  "name": "별빛 관측 일지: 아빠와 아들",
+  "description": "아빠와 아들이 함께 우주를 관찰하고 기록하는 프리미엄 천체 관측 일지입니다. AI로 강화된 기록 기능과 잡지 스타일의 디자인을 제공합니다.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
