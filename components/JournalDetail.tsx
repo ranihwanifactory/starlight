@@ -1,6 +1,6 @@
 import React from 'react';
 import { JournalEntry, UserProfile } from '../types';
-import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon } from 'lucide-react';
 
 interface JournalDetailProps {
   entry: JournalEntry;
@@ -75,7 +75,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
       <div className="fixed inset-0 z-0">
         {entry.imageUrl ? (
           <div 
-            className="w-full h-full bg-cover bg-center opacity-50 scale-105"
+            className="w-full h-full bg-cover bg-center opacity-40 scale-105 blur-sm"
             style={{ backgroundImage: `url(${entry.imageUrl})` }}
           />
         ) : (
@@ -156,8 +156,44 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
         <div className="bg-[#0B0D17]/95 backdrop-blur-xl border-t border-space-accent/20 min-h-[50vh] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
           <div className="max-w-6xl mx-auto px-6 py-16 md:px-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-16">
             
-            {/* Main Text */}
+            {/* Main Text & Image */}
             <div className="lg:col-span-8 order-2 lg:order-1">
+               
+               {/* Full Width Image Display */}
+               {entry.imageUrl && (
+                <div className="mb-12 relative group animate-fade-in">
+                  {/* Decorative Glow */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-space-accent via-purple-500 to-space-accent rounded-lg opacity-20 group-hover:opacity-40 blur-lg transition duration-1000"></div>
+                  
+                  {/* Image Container */}
+                  <div className="relative rounded-lg overflow-hidden border border-white/10 bg-black shadow-2xl">
+                    <img 
+                      src={entry.imageUrl} 
+                      alt={entry.title} 
+                      className="w-full h-auto object-cover transform transition-transform duration-700 hover:scale-[1.02]"
+                    />
+                    
+                    {/* Tech Overlays - Corners */}
+                    <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-space-accent/70 rounded-tl-sm"></div>
+                    <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-space-accent/70 rounded-tr-sm"></div>
+                    <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-space-accent/70 rounded-bl-sm"></div>
+                    <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-space-accent/70 rounded-br-sm"></div>
+                    
+                    {/* Center Crosshair (Subtle) */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-30 transition-opacity pointer-events-none">
+                       <div className="w-[1px] h-20 bg-space-accent"></div>
+                       <div className="h-[1px] w-20 bg-space-accent absolute"></div>
+                    </div>
+                  </div>
+
+                  {/* Caption */}
+                  <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs text-space-accent/60 font-display tracking-[0.2em] uppercase">
+                     <span className="flex items-center gap-2"><ImageIcon size={12} /> Fig 1.0 // Visual Data Record</span>
+                     <span>{entry.target || 'Deep Space Object'}</span>
+                  </div>
+                </div>
+               )}
+
                <p className="font-sans text-lg md:text-xl text-gray-300 leading-[2.2] text-justify whitespace-pre-wrap font-light tracking-wide">
                  <span className="text-5xl font-display text-space-accent float-left mr-4 mt-[-8px] drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]">
                    {entry.description.charAt(0)}
