@@ -3,7 +3,7 @@ import { JournalEntry, UserProfile } from '../types';
 import { db, storage } from '../firebase';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Camera, Sparkles, Save, X, Calendar, MapPin, Telescope, Users } from 'lucide-react';
+import { Camera, Sparkles, Save, X, Calendar, MapPin, Telescope, Users, Link as LinkIcon, Upload } from 'lucide-react';
 import { enhanceJournalEntry } from '../services/geminiService';
 
 interface JournalEditorProps {
@@ -23,7 +23,11 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
   const [target, setTarget] = useState('');
   const [description, setDescription] = useState('');
   const [observers, setObservers] = useState('아빠와 아들');
+  
+  // Image handling
+  const [inputType, setInputType] = useState<'file' | 'url'>('file');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [urlInput, setUrlInput] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +44,8 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       setObservers(initialData.observers);
       if (initialData.imageUrl) {
         setPreviewUrl(initialData.imageUrl);
+        // We don't populate urlInput with initialData.imageUrl because it might be a firebase storage URL
+        // causing confusion if the user wants to switch to URL mode. We treat initial image as 'existing'.
       }
     }
   }, [initialData]);
@@ -48,12 +54,20 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
+      setUrlInput(''); // Clear URL input if file is selected
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setUrlInput(url);
+    setImageFile(null); // Clear file if URL is typed
+    setPreviewUrl(url);
   };
 
   const handleAiEnhance = async () => {
@@ -76,11 +90,15 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       let imageUrl = initialData?.imageUrl || '';
 
       if (imageFile) {
-        // Upload new image
+        // Option 1: Upload new image file
         const storageRef = ref(storage, `journal_images/${user.uid}/${Date.now()}_${imageFile.name}`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         imageUrl = await getDownloadURL(snapshot.ref);
+      } else if (urlInput) {
+        // Option 2: Use provided URL directly
+        imageUrl = urlInput;
       }
+      // Option 3: Keep existing initialData.imageUrl (already assigned default)
 
       const entryData: Partial<JournalEntry> = {
         title,
@@ -130,25 +148,87 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Photo Upload Area */}
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="relative w-full h-64 border-2 border-dashed border-gray-600 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-space-accent hover:bg-space-700/50 transition-all group overflow-hidden"
-        >
-          {previewUrl ? (
-            <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
-            <div className="flex flex-col items-center text-gray-400 group-hover:text-space-accent">
-              <Camera size={48} className="mb-2" />
-              <p>클릭하여 천체 사진 {initialData ? '변경' : '업로드'}</p>
+        <div>
+          <div className="flex gap-6 border-b border-gray-700 mb-4">
+             <button 
+               type="button"
+               onClick={() => setInputType('file')}
+               className={`pb-2 px-1 text-sm font-bold transition-all flex items-center gap-2 ${inputType === 'file' ? 'text-space-accent border-b-2 border-space-accent' : 'text-gray-500 hover:text-gray-300'}`}
+             >
+               <Upload size={16} />
+               파일 업로드
+             </button>
+             <button 
+               type="button"
+               onClick={() => setInputType('url')}
+               className={`pb-2 px-1 text-sm font-bold transition-all flex items-center gap-2 ${inputType === 'url' ? 'text-space-accent border-b-2 border-space-accent' : 'text-gray-500 hover:text-gray-300'}`}
+             >
+               <LinkIcon size={16} />
+               이미지 URL
+             </button>
+          </div>
+
+          <div 
+            onClick={() => inputType === 'file' && fileInputRef.current?.click()}
+            className={`relative w-full h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden ${
+              inputType === 'file' 
+                ? 'cursor-pointer hover:border-space-accent hover:bg-space-700/50 border-gray-600' 
+                : 'border-gray-700 bg-black/20'
+            }`}
+          >
+            {previewUrl ? (
+              <div className="relative w-full h-full group-preview">
+                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewUrl(null);
+                    setImageFile(null);
+                    setUrlInput('');
+                  }}
+                  className="absolute top-2 right-2 bg-black/60 hover:bg-red-500/80 text-white p-2 rounded-full transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-gray-400 group-hover:text-space-accent">
+                {inputType === 'file' ? (
+                  <>
+                    <Camera size={48} className="mb-2" />
+                    <p>클릭하여 천체 사진 {initialData ? '변경' : '업로드'}</p>
+                  </>
+                ) : (
+                   <>
+                    <LinkIcon size={48} className="mb-2 opacity-50" />
+                    <p className="opacity-50">아래에 이미지 주소를 입력하세요</p>
+                   </>
+                )}
+              </div>
+            )}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImageChange} 
+              className="hidden" 
+              accept="image/*"
+            />
+          </div>
+
+          {/* URL Input Field - Only visible in URL mode */}
+          {inputType === 'url' && (
+            <div className="mt-3 animate-fade-in">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={handleUrlChange}
+                placeholder="https://example.com/image.jpg"
+                className="w-full bg-space-900/50 border border-gray-700 text-white px-4 py-3 rounded-lg focus:border-space-accent focus:outline-none placeholder-gray-600 font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1 ml-1">* 공개적으로 접근 가능한 이미지 URL을 입력해주세요.</p>
             </div>
           )}
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImageChange} 
-            className="hidden" 
-            accept="image/*"
-          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
