@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Starlight Journal</title>
     
     <!-- PWA Settings -->
@@ -43,14 +43,30 @@
       body {
         background-color: #0B0D17;
         color: #F8FAFC;
-        overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile app feel */
+        /* Prevent elastic scrolling on iOS for the whole body to give app-like feel */
+        overscroll-behavior-y: none; 
+        -webkit-tap-highlight-color: transparent;
       }
+      /* Hide Scrollbar */
       .scrollbar-hide::-webkit-scrollbar {
           display: none;
       }
       .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+      }
+      /* Safe Area Utilities */
+      .pt-safe {
+        padding-top: env(safe-area-inset-top);
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .pl-safe {
+        padding-left: env(safe-area-inset-left);
+      }
+      .pr-safe {
+        padding-right: env(safe-area-inset-right);
       }
     </style>
   <script type="importmap">
