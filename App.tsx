@@ -12,7 +12,7 @@ import JournalDetail from './components/JournalDetail';
 import AuthModal from './components/AuthModal';
 
 // Icons
-import { Rocket, Plus, LogOut, User } from 'lucide-react';
+import { Rocket, Plus, LogOut, User, Download } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [editingEntry, setEditingEntry] = useState<JournalEntry | undefined>(undefined);
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Auth Listener
   useEffect(() => {
@@ -40,6 +41,33 @@ const App: React.FC = () => {
     });
     return unsubscribe;
   }, []);
+
+  // PWA Install Prompt Listener
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
 
   // Data Fetching & Deep Linking
   useEffect(() => {
@@ -130,6 +158,16 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 md:gap-4">
+              {deferredPrompt && (
+                <button 
+                  onClick={handleInstallClick}
+                  className="flex items-center gap-2 text-xs md:text-sm font-bold text-space-900 bg-space-accent hover:bg-white transition-all px-3 py-2 rounded shadow-[0_0_10px_rgba(0,212,255,0.3)] animate-pulse"
+                >
+                  <Download size={16} />
+                  <span className="hidden md:inline">앱 설치</span>
+                </button>
+              )}
+
               {user ? (
                 <div className="flex items-center gap-2 md:gap-4">
                   <span className="hidden md:block text-sm text-space-accent font-display tracking-wider">
