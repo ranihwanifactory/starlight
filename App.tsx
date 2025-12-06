@@ -152,7 +152,7 @@ const App: React.FC = () => {
                   Starlight<span className="text-space-accent">.</span>Log
                 </h1>
                 <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-space-accent font-bold mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                  Interstellar Archive
+                  우주 탐사 기록 보관소
                 </p>
               </div>
             </div>
@@ -171,7 +171,7 @@ const App: React.FC = () => {
               {user ? (
                 <div className="flex items-center gap-2 md:gap-4">
                   <span className="hidden md:block text-sm text-space-accent font-display tracking-wider">
-                    CMDR. {user.displayName || 'GUEST'}
+                    탐사대원 {user.displayName || '손님'}
                   </span>
                   <button 
                     onClick={handleLogout}
@@ -191,7 +191,7 @@ const App: React.FC = () => {
                   style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0% 100%)' }}
                 >
                   <User size={16} md:size={18} />
-                  LOGIN
+                  로그인
                 </button>
               )}
             </div>
@@ -208,10 +208,10 @@ const App: React.FC = () => {
             <header className="mb-10 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-8 animate-fade-in mt-2">
                <div className="w-full">
                   <h2 className="text-3xl md:text-6xl font-display text-white mb-3 tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)]">
-                    Mission Logs
+                    우주 탐사 일지
                   </h2>
                   <p className="text-space-accent/80 font-sans text-base md:text-xl max-w-xl leading-relaxed tracking-wide">
-                    Recording the wonders of the cosmos, one star at a time.
+                    별 하나, 추억 하나. 우리만의 우주를 기록해봐요.
                   </p>
                </div>
                
@@ -220,7 +220,7 @@ const App: React.FC = () => {
                  className="w-full md:w-auto justify-center group bg-transparent border border-space-accent text-space-accent hover:bg-space-accent hover:text-space-900 px-8 py-3 font-display tracking-widest font-bold transition-all shadow-[0_0_20px_rgba(0,212,255,0.2)] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] flex items-center gap-3 uppercase active:scale-95"
                >
                  <Plus size={22} className="group-hover:rotate-90 transition-transform duration-300" />
-                 New Entry
+                 새 기록 작성
                </button>
             </header>
 

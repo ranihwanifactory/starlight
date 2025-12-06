@@ -18,7 +18,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
     const baseUrl = window.location.origin + window.location.pathname;
     const shareUrl = `${baseUrl}?entry=${entry.id}`;
     const shareTitle = `Starlight Journal: ${entry.title}`;
-    const shareText = `Check out this cosmic observation by ${entry.observers}.\nTarget: ${entry.target}\n\n`;
+    const shareText = `${entry.observers} 대원의 우주 관측 기록을 확인해보세요!\n관측 대상: ${entry.target}\n\n`;
 
     try {
       // Try to share with file if image exists and API supports it
@@ -63,7 +63,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
       } else {
         // Fallback: Clipboard
         await navigator.clipboard.writeText(`${shareTitle}\n${shareText}\n${shareUrl}`);
-        alert('Link copied to clipboard! (Share API not available)');
+        alert('링크가 복사되었습니다! 친구들에게 공유해보세요.');
       }
 
     } catch (error) {
@@ -72,7 +72,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this log? This action cannot be undone.')) {
+    if (window.confirm('정말로 이 기록을 삭제할까요? 삭제된 기록은 되돌릴 수 없어요.')) {
       if (entry.id) onDelete(entry.id);
     }
   };
@@ -110,14 +110,14 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
               <button 
                 onClick={() => onEdit(entry)}
                 className="p-3 bg-black/40 backdrop-blur-md border border-white/10 hover:border-space-accent text-white hover:text-space-accent transition-all rounded-sm"
-                title="Edit Entry"
+                title="기록 수정"
               >
                 <Edit size={20} />
               </button>
               <button 
                 onClick={handleDelete}
                 className="p-3 bg-black/40 backdrop-blur-md border border-white/10 hover:border-red-500 text-red-400 hover:text-red-500 transition-all rounded-sm"
-                title="Delete Entry"
+                title="기록 삭제"
               >
                 <Trash2 size={20} />
               </button>
@@ -126,10 +126,10 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
           <button 
             onClick={handleShare}
             className="group flex items-center gap-2 px-4 md:px-6 py-3 bg-space-accent/10 backdrop-blur-md border border-space-accent text-space-accent hover:bg-space-accent hover:text-black transition-all shadow-[0_0_15px_rgba(0,212,255,0.2)] rounded-sm"
-            title="Share Log"
+            title="기록 공유"
           >
             <Share2 size={20} className="group-hover:scale-110 transition-transform" />
-            <span className="font-display font-bold tracking-wider text-xs md:text-sm">SHARE</span>
+            <span className="font-display font-bold tracking-wider text-xs md:text-sm">공유하기</span>
           </button>
         </div>
       </div>
@@ -142,7 +142,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
             <div className="flex flex-wrap items-center gap-3 animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <div className="flex items-center gap-2 px-3 py-1 bg-space-accent/10 border border-space-accent/50 text-space-accent text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] backdrop-blur-sm">
                 <Telescope size={12} />
-                {entry.target || 'UNKNOWN TARGET'}
+                {entry.target || '대상 미상'}
               </div>
               <div className="flex items-center gap-2 text-space-accent/80 text-xs md:text-sm font-display tracking-widest">
                 <Calendar size={12} /> {entry.date}
@@ -155,7 +155,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
             
             <div className="flex items-center gap-4 text-gray-300 animate-slide-up mt-4" style={{ animationDelay: '0.3s' }}>
                <div className="h-[2px] w-8 md:w-12 bg-space-accent shadow-[0_0_10px_#00D4FF]"></div>
-               <span className="font-sans text-sm md:text-lg tracking-widest uppercase text-gray-400">Observed by <span className="text-white font-bold">{entry.observers}</span></span>
+               <span className="font-sans text-sm md:text-lg tracking-widest text-gray-400">작성자: <span className="text-white font-bold">{entry.observers}</span></span>
             </div>
           </div>
         </div>
@@ -190,8 +190,8 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
 
                   {/* Caption */}
                   <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs text-space-accent/60 font-display tracking-[0.2em] uppercase">
-                     <span className="flex items-center gap-2"><ImageIcon size={12} /> Fig 1.0 // Visual Data Record</span>
-                     <span>{entry.target || 'Deep Space Object'}</span>
+                     <span className="flex items-center gap-2"><ImageIcon size={12} /> 그림 1.0 // 시각 관측 자료</span>
+                     <span>{entry.target || '심우주 천체'}</span>
                   </div>
                 </div>
                )}
@@ -210,34 +210,34 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-space-accent to-transparent opacity-50"></div>
                 
                 <h3 className="font-display text-lg md:text-xl text-white mb-6 md:mb-8 flex items-center gap-2">
-                  <span className="text-space-accent">///</span> MISSION DATA
+                  <span className="text-space-accent">///</span> 탐사 데이터
                 </h3>
                 
                 <ul className="space-y-6 md:space-y-8">
                   <li className="relative pl-4 border-l-2 border-white/10 hover:border-space-accent transition-colors">
                     <span className="block text-[10px] font-bold text-space-accent uppercase tracking-[0.2em] mb-1">
-                      Coordinates / Location
+                      관측 장소
                     </span>
                     <span className="text-white font-display text-base md:text-lg tracking-wide break-words">{entry.location}</span>
                   </li>
                   
                   <li className="relative pl-4 border-l-2 border-white/10 hover:border-space-accent transition-colors">
                     <span className="block text-[10px] font-bold text-space-accent uppercase tracking-[0.2em] mb-1">
-                      Optics / Equipment
+                      사용 장비
                     </span>
-                    <span className="text-white font-display text-base md:text-lg tracking-wide break-words">{entry.equipment || 'UNAIDED EYE'}</span>
+                    <span className="text-white font-display text-base md:text-lg tracking-wide break-words">{entry.equipment || '맨눈 관측'}</span>
                   </li>
 
                   <li className="relative pl-4 border-l-2 border-white/10 hover:border-space-accent transition-colors">
                     <span className="block text-[10px] font-bold text-space-accent uppercase tracking-[0.2em] mb-1">
-                      Crew
+                      함께한 대원
                     </span>
                     <span className="text-white font-display text-base md:text-lg tracking-wide break-words">{entry.observers}</span>
                   </li>
 
                    <li className="relative pl-4 border-l-2 border-white/10 hover:border-space-accent transition-colors">
                     <span className="block text-[10px] font-bold text-space-accent uppercase tracking-[0.2em] mb-1">
-                      Timestamp
+                      기록 시간
                     </span>
                     <span className="text-white font-display text-base md:text-lg tracking-wide">{new Date(entry.createdAt).toLocaleDateString()}</span>
                   </li>
@@ -252,7 +252,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
              <div className="text-center">
                 <div className="text-space-accent mb-2">✦ ✦ ✦</div>
                 <div className="font-display text-xl md:text-3xl tracking-[0.5em] text-white uppercase">Starlight Journal</div>
-                <div className="text-[10px] uppercase tracking-[1em] text-gray-500 mt-2">End of Log</div>
+                <div className="text-[10px] uppercase tracking-[1em] text-gray-500 mt-2">기록 끝</div>
              </div>
           </div>
         </div>
