@@ -18,6 +18,8 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  equipment?: string; // Added field
+  region?: string;    // Added field
 }
 
 export enum ViewState {

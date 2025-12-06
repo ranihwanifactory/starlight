@@ -32,7 +32,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load initial data if editing
+  // Load initial data if editing, or user profile defaults if creating new
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title);
@@ -44,11 +44,13 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       setObservers(initialData.observers);
       if (initialData.imageUrl) {
         setPreviewUrl(initialData.imageUrl);
-        // We don't populate urlInput with initialData.imageUrl because it might be a firebase storage URL
-        // causing confusion if the user wants to switch to URL mode. We treat initial image as 'existing'.
       }
+    } else {
+      // New Entry: Auto-fill from user profile
+      if (user.region) setLocation(user.region);
+      if (user.equipment) setEquipment(user.equipment);
     }
-  }, [initialData]);
+  }, [initialData, user]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

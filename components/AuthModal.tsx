@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, db } from '../firebase';
 import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { X, Mail, Chrome } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { X, Mail, Chrome, Telescope, MapPin } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -12,6 +13,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // New State for Profile
+  const [equipment, setEquipment] = useState('');
+  const [region, setRegion] = useState('');
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +25,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      // Optionally create a user document here if it doesn't exist, 
+      // but for simplicity we'll just log them in. 
+      // Future improvement: check if doc exists, if not, create default.
+      
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -37,7 +47,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // Sign Up Flow
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Save extended profile data to Firestore
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email,
+          equipment: equipment,
+          region: region,
+          createdAt: Date.now()
+        });
       }
       onClose();
     } catch (err: any) {
@@ -47,9 +68,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md bg-space-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="relative w-full max-w-md bg-space-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden my-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
           <X size={24} />
         </button>
@@ -102,12 +128,42 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               />
             </div>
 
+            {/* Extra Fields for Sign Up */}
+            {!isLogin && (
+              <div className="space-y-4 pt-2 animate-fade-in">
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                     <MapPin size={18} />
+                   </div>
+                   <input
+                    type="text"
+                    placeholder="주 활동 지역 (예: 서울, 강원도 영월)"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="w-full bg-space-900 border border-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent placeholder-gray-600"
+                  />
+                </div>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                     <Telescope size={18} />
+                   </div>
+                   <input
+                    type="text"
+                    placeholder="보유 장비 (예: 셀레스트론 8SE, 쌍안경)"
+                    value={equipment}
+                    onChange={(e) => setEquipment(e.target.value)}
+                    className="w-full bg-space-900 border border-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent placeholder-gray-600"
+                  />
+                </div>
+              </div>
+            )}
+
             {error && <p className="text-red-400 text-sm">{error}</p>}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-space-accent hover:bg-yellow-600 text-space-900 font-bold py-3 px-4 rounded-lg transition-all transform active:scale-95 flex items-center justify-center gap-2"
+              className="w-full bg-space-accent hover:bg-yellow-600 text-space-900 font-bold py-3 px-4 rounded-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 mt-6"
             >
               <Mail size={20} />
               {loading ? '처리 중...' : (isLogin ? '로그인' : '계정 만들기')}
@@ -117,7 +173,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           <div className="mt-6 text-center text-gray-400 text-sm">
             {isLogin ? "계정이 없으신가요? " : "이미 계정이 있으신가요? "}
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={toggleMode}
               className="text-space-accent hover:underline font-bold"
             >
               {isLogin ? '회원가입' : '로그인'}
