@@ -49,6 +49,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       // New Entry: Auto-fill from user profile
       if (user.region) setLocation(user.region);
       if (user.equipment) setEquipment(user.equipment);
+      if (user.displayName) setObservers(user.displayName);
     }
   }, [initialData, user]);
 
@@ -124,6 +125,8 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
           ...entryData as JournalEntry,
           createdAt: Date.now(),
           userId: user.uid,
+          likes: [],     // Initialize likes
+          comments: []   // Initialize comments
         };
         await addDoc(collection(db, 'journals'), newEntry);
       }
@@ -262,7 +265,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
 
             <div>
               <label className="block text-space-accent text-sm font-bold uppercase mb-1 flex items-center gap-2">
-                <Users size={14} /> 관측자
+                <Users size={14} /> 관측자 (작성자)
               </label>
               <input
                 type="text"
@@ -308,6 +311,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
                 placeholder="예: 셀레스트론 NexStar 8SE"
                 className="w-full bg-space-900/50 border border-gray-700 text-white p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
               />
+              <p className="text-xs text-gray-500 mt-1">이 게시물에 사용된 장비를 입력하세요. (기본값은 프로필에서 가져옵니다)</p>
             </div>
           </div>
         </div>

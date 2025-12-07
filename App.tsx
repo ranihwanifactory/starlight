@@ -10,9 +10,10 @@ import JournalList from './components/JournalList';
 import JournalEditor from './components/JournalEditor';
 import JournalDetail from './components/JournalDetail';
 import AuthModal from './components/AuthModal';
+import UserProfileModal from './components/UserProfileModal';
 
 // Icons
-import { Rocket, PlusSquare, LogOut, User, Download, Heart } from 'lucide-react';
+import { Rocket, PlusSquare, LogOut, User, Download, Heart, Settings } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -20,7 +21,11 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.HOME);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | undefined>(undefined);
+  
+  // Modals
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setProfileModalOpen] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
@@ -43,11 +48,10 @@ const App: React.FC = () => {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
-            ...additionalData // Merge equipment and region
+            ...additionalData 
           });
         } catch (error) {
           console.error("Error fetching user profile:", error);
-          // Fallback to basic auth info
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -66,9 +70,7 @@ const App: React.FC = () => {
   // PWA Install Prompt Listener
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
     };
 
@@ -83,7 +85,6 @@ const App: React.FC = () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User response to the install prompt: ${outcome}`);
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
       }
@@ -137,7 +138,6 @@ const App: React.FC = () => {
     setSelectedEntry(null);
     setEditingEntry(undefined);
     setView(ViewState.HOME);
-    // Clear URL params on back to home
     window.history.pushState({}, '', window.location.pathname);
   };
 
@@ -167,7 +167,7 @@ const App: React.FC = () => {
             {/* Logo area */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleBackToHome}>
                 <h1 className="text-xl md:text-2xl font-display text-white tracking-widest uppercase italic">
-                  Starlight
+                  별스타그램
                 </h1>
             </div>
 
@@ -184,9 +184,23 @@ const App: React.FC = () => {
               </button>
 
               {user ? (
-                 <button onClick={handleLogout} className="text-white hover:text-red-400 transition-colors">
-                   <LogOut size={24} />
-                 </button>
+                 <div className="flex items-center gap-3">
+                   <button 
+                    onClick={() => setProfileModalOpen(true)}
+                    className="w-8 h-8 rounded-full overflow-hidden border border-white/20 hover:border-space-accent transition-all"
+                   >
+                     {user.photoURL ? (
+                       <img src={user.photoURL} alt="Me" className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="w-full h-full bg-space-800 flex items-center justify-center">
+                         <User size={16} />
+                       </div>
+                     )}
+                   </button>
+                   <button onClick={handleLogout} className="text-white hover:text-red-400 transition-colors">
+                     <LogOut size={24} />
+                   </button>
+                 </div>
               ) : (
                 <button onClick={() => setAuthModalOpen(true)} className="text-sm font-bold text-space-accent">
                   로그인
@@ -202,14 +216,12 @@ const App: React.FC = () => {
         
         {view === ViewState.HOME && (
           <div className="px-0 md:px-4">
-            {/* Stories / Hero area could go here, but kept simple for feed */}
-            
             {loading ? (
               <div className="flex justify-center py-20">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-space-accent"></div>
               </div>
             ) : (
-              <JournalList entries={entries} onSelect={handleEntrySelect} />
+              <JournalList entries={entries} onSelect={handleEntrySelect} currentUser={user} />
             )}
           </div>
         )}
@@ -237,6 +249,15 @@ const App: React.FC = () => {
       </main>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setAuthModalOpen(false)} />
+      
+      {user && (
+        <UserProfileModal 
+          isOpen={isProfileModalOpen} 
+          onClose={() => setProfileModalOpen(false)} 
+          user={user}
+          onUpdate={(updatedUser) => setUser(updatedUser)}
+        />
+      )}
     </div>
   );
 };

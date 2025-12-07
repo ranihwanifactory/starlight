@@ -57,7 +57,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           email: user.email,
           equipment: equipment,
           region: region,
-          createdAt: Date.now()
+          createdAt: Date.now(),
+          followers: [],
+          following: []
         });
       }
       onClose();

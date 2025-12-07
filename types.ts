@@ -1,16 +1,27 @@
+export interface Comment {
+  id: string;
+  userId: string;
+  userName: string;
+  text: string;
+  createdAt: number;
+}
+
 export interface JournalEntry {
   id?: string;
   title: string;
   date: string;
   location: string;
   equipment: string;
-  target: string; // e.g., Jupiter, Orion Nebula
+  target: string;
   description: string;
   imageUrl?: string;
-  observers: string; // e.g., "Dad & Son"
+  observers: string;
   createdAt: number;
   userId: string;
   authorName: string;
+  // Social Features
+  likes?: string[]; // Array of user UIDs
+  comments?: Comment[];
 }
 
 export interface UserProfile {
@@ -18,8 +29,11 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  equipment?: string; // Added field
-  region?: string;    // Added field
+  equipment?: string;
+  region?: string;
+  // Social Features
+  followers?: string[];
+  following?: string[];
 }
 
 export enum ViewState {
