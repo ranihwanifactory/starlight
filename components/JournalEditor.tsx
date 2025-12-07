@@ -141,12 +141,12 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-space-800/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl p-4 md:p-8 animate-fade-in relative z-20 my-4 md:my-8 mb-20 md:mb-8">
+    <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 shadow-xl p-4 md:p-8 animate-fade-in relative z-20 my-4 md:my-8 mb-20 md:mb-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl md:text-3xl font-display text-white">
+        <h2 className="text-2xl md:text-3xl font-display text-gray-900">
           {initialData ? '관측 일지 수정' : '새로운 관측 일지'}
         </h2>
-        <button onClick={onCancel} className="text-gray-400 hover:text-white transition-colors p-2">
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-900 transition-colors p-2">
           <X size={28} />
         </button>
       </div>
@@ -154,11 +154,11 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Photo Upload Area */}
         <div>
-          <div className="flex gap-6 border-b border-gray-700 mb-4">
+          <div className="flex gap-6 border-b border-gray-200 mb-4">
              <button 
                type="button"
                onClick={() => setInputType('file')}
-               className={`pb-2 px-1 text-base md:text-sm font-bold transition-all flex items-center gap-2 ${inputType === 'file' ? 'text-space-accent border-b-2 border-space-accent' : 'text-gray-500 hover:text-gray-300'}`}
+               className={`pb-2 px-1 text-base md:text-sm font-bold transition-all flex items-center gap-2 ${inputType === 'file' ? 'text-space-accent border-b-2 border-space-accent' : 'text-gray-400 hover:text-gray-600'}`}
              >
                <Upload size={18} />
                파일 업로드
@@ -166,7 +166,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
              <button 
                type="button"
                onClick={() => setInputType('url')}
-               className={`pb-2 px-1 text-base md:text-sm font-bold transition-all flex items-center gap-2 ${inputType === 'url' ? 'text-space-accent border-b-2 border-space-accent' : 'text-gray-500 hover:text-gray-300'}`}
+               className={`pb-2 px-1 text-base md:text-sm font-bold transition-all flex items-center gap-2 ${inputType === 'url' ? 'text-space-accent border-b-2 border-space-accent' : 'text-gray-400 hover:text-gray-600'}`}
              >
                <LinkIcon size={18} />
                이미지 URL
@@ -177,8 +177,8 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
             onClick={() => inputType === 'file' && fileInputRef.current?.click()}
             className={`relative w-full h-48 md:h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all group overflow-hidden ${
               inputType === 'file' 
-                ? 'cursor-pointer hover:border-space-accent hover:bg-space-700/50 border-gray-600' 
-                : 'border-gray-700 bg-black/20'
+                ? 'cursor-pointer hover:border-space-accent hover:bg-gray-50 border-gray-300' 
+                : 'border-gray-200 bg-gray-50'
             }`}
           >
             {previewUrl ? (
@@ -229,7 +229,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
                 value={urlInput}
                 onChange={handleUrlChange}
                 placeholder="https://example.com/image.jpg"
-                className="w-full bg-space-900/50 border border-gray-700 text-white px-4 py-3 rounded-lg focus:border-space-accent focus:outline-none placeholder-gray-600 font-mono text-base"
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 px-4 py-3 rounded-lg focus:border-space-accent focus:outline-none placeholder-gray-400 font-mono text-base"
               />
               <p className="text-xs text-gray-500 mt-1 ml-1">* 공개적으로 접근 가능한 이미지 URL을 입력해주세요.</p>
             </div>
@@ -239,19 +239,19 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-space-accent text-sm font-bold uppercase mb-1">일지 제목</label>
+              <label className="block text-gray-700 text-sm font-bold uppercase mb-1">일지 제목</label>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="예: 토성을 처음 본 날"
-                className="w-full bg-space-900/50 border border-gray-700 text-white p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-space-accent text-sm font-bold uppercase mb-1 flex items-center gap-2">
+              <label className="block text-gray-700 text-sm font-bold uppercase mb-1 flex items-center gap-2">
                 <Telescope size={14} /> 관측 대상
               </label>
               <input
@@ -259,38 +259,38 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
                 value={target}
                 onChange={e => setTarget(e.target.value)}
                 placeholder="예: 목성, M42"
-                className="w-full bg-space-900/50 border border-gray-700 text-white p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
               />
             </div>
 
             <div>
-              <label className="block text-space-accent text-sm font-bold uppercase mb-1 flex items-center gap-2">
+              <label className="block text-gray-700 text-sm font-bold uppercase mb-1 flex items-center gap-2">
                 <Users size={14} /> 관측자 (작성자)
               </label>
               <input
                 type="text"
                 value={observers}
                 onChange={e => setObservers(e.target.value)}
-                className="w-full bg-space-900/50 border border-gray-700 text-white p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
               />
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-space-accent text-sm font-bold uppercase mb-1 flex items-center gap-2">
+              <label className="block text-gray-700 text-sm font-bold uppercase mb-1 flex items-center gap-2">
                 <Calendar size={14} /> 관측 날짜
               </label>
               <input
                 type="date"
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full bg-space-900/50 border border-gray-700 text-white p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
               />
             </div>
 
             <div>
-              <label className="block text-space-accent text-sm font-bold uppercase mb-1 flex items-center gap-2">
+              <label className="block text-gray-700 text-sm font-bold uppercase mb-1 flex items-center gap-2">
                 <MapPin size={14} /> 관측 장소
               </label>
               <input
@@ -298,18 +298,18 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
                 value={location}
                 onChange={e => setLocation(e.target.value)}
                 placeholder="예: 뒷마당, 천문대"
-                className="w-full bg-space-900/50 border border-gray-700 text-white p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
               />
             </div>
 
              <div>
-              <label className="block text-space-accent text-sm font-bold uppercase mb-1">관측 장비</label>
+              <label className="block text-gray-700 text-sm font-bold uppercase mb-1">관측 장비</label>
               <input
                 type="text"
                 value={equipment}
                 onChange={e => setEquipment(e.target.value)}
                 placeholder="예: 셀레스트론 NexStar 8SE"
-                className="w-full bg-space-900/50 border border-gray-700 text-white p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
               />
               <p className="text-xs text-gray-500 mt-1">이 게시물에 사용된 장비를 입력하세요. (기본값은 프로필에서 가져옵니다)</p>
             </div>
@@ -318,12 +318,12 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
 
         <div>
           <div className="flex justify-between items-center mb-1">
-            <label className="block text-space-accent text-sm font-bold uppercase">관측 노트</label>
+            <label className="block text-gray-700 text-sm font-bold uppercase">관측 노트</label>
             <button
               type="button"
               onClick={handleAiEnhance}
               disabled={aiLoading}
-              className="text-xs flex items-center gap-1 text-purple-300 hover:text-white bg-purple-900/40 px-3 py-1.5 rounded-full transition-colors border border-purple-500/30"
+              className="text-xs flex items-center gap-1 text-purple-600 hover:text-purple-800 bg-purple-100 px-3 py-1.5 rounded-full transition-colors border border-purple-200"
             >
               <Sparkles size={12} />
               {aiLoading ? 'AI가 글을 다듬는 중...' : 'Gemini AI로 글 다듬기'}
@@ -334,22 +334,22 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
             onChange={e => setDescription(e.target.value)}
             rows={8}
             placeholder="무엇을 보았나요? 색상, 밝기, 대기의 상태 등을 자유롭게 적어보세요..."
-            className="w-full bg-space-900/50 border border-gray-700 text-white p-4 rounded-lg focus:border-space-accent focus:outline-none font-serif leading-loose text-base"
+            className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-4 rounded-lg focus:border-space-accent focus:outline-none font-serif leading-loose text-base"
           ></textarea>
         </div>
 
-        <div className="flex flex-col-reverse md:flex-row justify-end gap-4 pt-4 border-t border-white/10">
+        <div className="flex flex-col-reverse md:flex-row justify-end gap-4 pt-4 border-t border-gray-200">
           <button
             type="button"
             onClick={onCancel}
-            className="w-full md:w-auto px-6 py-3 rounded-lg border border-gray-600 text-gray-300 hover:bg-white/5 transition-colors text-base"
+            className="w-full md:w-auto px-6 py-3 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors text-base"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="w-full md:w-auto px-8 py-3 rounded-lg bg-space-accent text-space-900 font-bold hover:bg-yellow-500 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(212,175,55,0.4)] text-base"
+            className="w-full md:w-auto px-8 py-3 rounded-lg bg-space-accent text-white font-bold hover:bg-cyan-500 transition-all flex items-center justify-center gap-2 shadow-lg text-base"
           >
             <Save size={18} />
             {loading ? '저장 중...' : (initialData ? '수정 완료' : '일지 저장')}

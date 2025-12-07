@@ -7,9 +7,9 @@
     
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0B0D17" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Starlight" />
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/512/telescope.png" />
 
@@ -28,11 +28,12 @@
             },
             colors: {
               space: {
-                900: '#0B0D17',
-                800: '#151932',
-                700: '#1F294F',
+                900: '#0B0D17', // Kept for legacy ref
+                800: '#151932', // Kept for legacy ref
                 accent: '#00D4FF', 
                 accentGlow: '#00D4FF80', 
+                dark: '#111827', // New dark text color
+                light: '#F3F4F6', // New light bg
               }
             }
           }
@@ -41,8 +42,8 @@
     </script>
     <style>
       body {
-        background-color: #0B0D17;
-        color: #F8FAFC;
+        background-color: #FFFFFF;
+        color: #111827;
         /* Prevent elastic scrolling on iOS for the whole body to give app-like feel */
         overscroll-behavior-y: none; 
         -webkit-tap-highlight-color: transparent;

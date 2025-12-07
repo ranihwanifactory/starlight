@@ -157,16 +157,16 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] text-gray-100 font-sans selection:bg-space-accent selection:text-space-900 overflow-x-hidden">
+    <div className="min-h-[100dvh] text-gray-900 font-sans selection:bg-space-accent selection:text-white overflow-x-hidden bg-white">
       <StarBackground />
       
       {/* Navigation - Feed Style Header */}
       {view !== ViewState.DETAIL && (
-        <nav className="fixed top-0 left-0 right-0 z-40 bg-black/90 md:bg-space-900/90 backdrop-blur-md border-b border-white/10 pt-safe transition-all duration-300">
+        <nav className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 pt-safe transition-all duration-300">
           <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
             {/* Logo area */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleBackToHome}>
-                <h1 className="text-xl md:text-2xl font-display text-white tracking-widest uppercase italic">
+                <h1 className="text-xl md:text-2xl font-display text-gray-900 tracking-widest uppercase italic">
                   별스타그램
                 </h1>
             </div>
@@ -174,12 +174,12 @@ const App: React.FC = () => {
             {/* Actions area */}
             <div className="flex items-center gap-4">
               {deferredPrompt && (
-                <button onClick={handleInstallClick} className="text-white hover:text-space-accent">
+                <button onClick={handleInstallClick} className="text-gray-700 hover:text-space-accent">
                    <Download size={24} />
                 </button>
               )}
               
-              <button onClick={handleCreateClick} className="text-white hover:text-space-accent transition-colors">
+              <button onClick={handleCreateClick} className="text-gray-700 hover:text-space-accent transition-colors">
                  <PlusSquare size={24} />
               </button>
 
@@ -187,17 +187,17 @@ const App: React.FC = () => {
                  <div className="flex items-center gap-3">
                    <button 
                     onClick={() => setProfileModalOpen(true)}
-                    className="w-8 h-8 rounded-full overflow-hidden border border-white/20 hover:border-space-accent transition-all"
+                    className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 hover:border-space-accent transition-all"
                    >
                      {user.photoURL ? (
                        <img src={user.photoURL} alt="Me" className="w-full h-full object-cover" />
                      ) : (
-                       <div className="w-full h-full bg-space-800 flex items-center justify-center">
-                         <User size={16} />
+                       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                         <User size={16} className="text-gray-500" />
                        </div>
                      )}
                    </button>
-                   <button onClick={handleLogout} className="text-white hover:text-red-400 transition-colors">
+                   <button onClick={handleLogout} className="text-gray-700 hover:text-red-500 transition-colors">
                      <LogOut size={24} />
                    </button>
                  </div>

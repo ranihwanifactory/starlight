@@ -12,10 +12,10 @@ const JournalList: React.FC<JournalListProps> = ({ entries, onSelect, currentUse
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-gray-500">
-        <div className="w-24 h-24 rounded-full border-2 border-gray-700 flex items-center justify-center mb-4">
+        <div className="w-24 h-24 rounded-full border-2 border-gray-300 flex items-center justify-center mb-4 bg-white">
            <Telescope size={40} className="opacity-50" />
         </div>
-        <h3 className="text-xl font-display text-white mb-2">게시물 없음</h3>
+        <h3 className="text-xl font-display text-gray-900 mb-2">게시물 없음</h3>
         <p className="font-serif text-sm">첫 번째 우주 관측 기록을 남겨보세요.</p>
       </div>
     );
@@ -33,7 +33,7 @@ const JournalList: React.FC<JournalListProps> = ({ entries, onSelect, currentUse
             <div 
               key={entry.id}
               onClick={() => onSelect(entry)}
-              className="relative aspect-square group cursor-pointer overflow-hidden bg-space-800 md:rounded-sm"
+              className="relative aspect-square group cursor-pointer overflow-hidden bg-gray-100 md:rounded-sm shadow-sm"
             >
               {entry.imageUrl ? (
                 <img 
@@ -42,9 +42,9 @@ const JournalList: React.FC<JournalListProps> = ({ entries, onSelect, currentUse
                   className="w-full h-full object-cover transition-transform duration-500 md:group-hover:scale-110" 
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-gray-600 p-4 text-center">
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400 p-4 text-center">
                   <Telescope size={32} className="mb-2 opacity-50" />
-                  <span className="text-[10px] md:text-xs font-bold truncate w-full px-2">{entry.title}</span>
+                  <span className="text-[10px] md:text-xs font-bold truncate w-full px-2 text-gray-500">{entry.title}</span>
                 </div>
               )}
 
@@ -65,10 +65,6 @@ const JournalList: React.FC<JournalListProps> = ({ entries, onSelect, currentUse
                  <p className="text-white text-[10px] font-bold truncate">{entry.title}</p>
               </div>
               
-              {/* Type Indicator (Optional: if we had video vs image) */}
-              {/* <div className="absolute top-2 right-2 text-white drop-shadow-md">
-                 <Copy size={16} /> 
-              </div> */}
             </div>
           );
         })}

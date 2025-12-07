@@ -48,25 +48,25 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-md bg-space-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden my-auto animate-fade-in">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="relative w-full max-w-md bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden my-auto animate-fade-in">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900">
           <X size={24} />
         </button>
 
         <div className="p-8">
           <div className="text-center mb-8">
-            <div className="w-24 h-24 mx-auto mb-4 rounded-full border-2 border-space-accent p-1">
+            <div className="w-24 h-24 mx-auto mb-4 rounded-full border-2 border-gray-200 p-1">
               {user.photoURL ? (
                 <img src={user.photoURL} alt="Profile" className="w-full h-full rounded-full object-cover" />
               ) : (
-                <div className="w-full h-full rounded-full bg-space-700 flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center">
                   <User size={40} className="text-gray-400" />
                 </div>
               )}
             </div>
-            <h2 className="text-2xl font-display text-white">프로필 수정</h2>
-            <p className="text-sm text-gray-400">{user.email}</p>
+            <h2 className="text-2xl font-display text-gray-900">프로필 수정</h2>
+            <p className="text-sm text-gray-500">{user.email}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -80,7 +80,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full bg-space-900 border border-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent"
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-900 pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent"
                   placeholder="별 보는 탐험가"
                 />
               </div>
@@ -96,7 +96,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
                   type="text"
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
-                  className="w-full bg-space-900 border border-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent"
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-900 pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent"
                   placeholder="예: 서울, 강원도 영월"
                 />
               </div>
@@ -111,7 +111,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
                 <textarea
                   value={equipment}
                   onChange={(e) => setEquipment(e.target.value)}
-                  className="w-full bg-space-900 border border-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent min-h-[80px] resize-none"
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-900 pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-space-accent min-h-[80px] resize-none"
                   placeholder="보유 중인 망원경, 카메라 등을 적어주세요."
                 />
               </div>
@@ -121,10 +121,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-space-accent hover:bg-white text-space-900 font-bold py-3 px-4 rounded-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 mt-4"
+              className="w-full bg-space-accent hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 mt-4"
             >
               <Save size={20} />
-              {loading ? '저장 중...' : '프로필 저장'}
+              {loading ? '처리 중...' : '프로필 저장'}
             </button>
           </form>
         </div>
