@@ -177,9 +177,11 @@ const App: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
             {/* Logo area */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleBackToHome}>
-                <h1 className="text-xl md:text-2xl font-display text-gray-900 tracking-widest uppercase italic">
-                  별스타그램
-                </h1>
+                <img 
+                  src="/logo.png" 
+                  alt="Starlight Journal" 
+                  className="h-8 md:h-10 w-auto object-contain" 
+                />
             </div>
 
             {/* Actions area */}
