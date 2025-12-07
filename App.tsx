@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { JournalEntry, UserProfile, ViewState } from './types';
 
 // Components
@@ -11,6 +11,7 @@ import JournalEditor from './components/JournalEditor';
 import JournalDetail from './components/JournalDetail';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
+import Logo from './components/Logo'; // Import the new Logo component
 
 // Icons
 import { Rocket, PlusSquare, LogOut, User, Download, Heart, Settings } from 'lucide-react';
@@ -33,19 +34,53 @@ const App: React.FC = () => {
   useEffect(() => {
     let unsubscribeProfile: (() => void) | undefined;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Set up real-time listener for user profile (to track following list changes)
-        unsubscribeProfile = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
-          const data = docSnap.data();
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            ...data
-          } as UserProfile);
-        });
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        
+        // 1. Ensure User Profile Exists (Migration for old users)
+        try {
+          const userSnap = await getDoc(userRef);
+          if (!userSnap.exists()) {
+            await setDoc(userRef, {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              createdAt: Date.now(),
+              followers: [],
+              following: [],
+              equipment: '',
+              region: ''
+            });
+          }
+        } catch (e) {
+          console.warn("Could not check/create user profile. This might be due to permissions.", e);
+        }
+
+        // 2. Set up real-time listener with error handling
+        unsubscribeProfile = onSnapshot(userRef, 
+          (docSnap) => {
+            const data = docSnap.data();
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              ...(data || {}) // Safe spread if data is undefined
+            } as UserProfile);
+          }, 
+          (error) => {
+            console.error("Profile sync error:", error);
+            // Fallback: Use basic auth info if Firestore fails
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+            } as UserProfile);
+          }
+        );
       } else {
         if (unsubscribeProfile) unsubscribeProfile();
         setUser(null);
@@ -85,6 +120,7 @@ const App: React.FC = () => {
 
   // Data Fetching & Deep Linking
   useEffect(() => {
+    // Only listen to feed if not loading, but simple logic is fine
     const q = query(collection(db, 'journals'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedEntries = snapshot.docs.map(doc => ({
@@ -103,6 +139,8 @@ const App: React.FC = () => {
           setView(ViewState.DETAIL);
         }
       }
+    }, (error) => {
+      console.error("Journal sync error:", error);
     });
     return unsubscribe;
   }, []);
@@ -177,11 +215,7 @@ const App: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
             {/* Logo area */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleBackToHome}>
-                <img 
-                  src="/logo.png" 
-                  alt="Starlight Journal" 
-                  className="h-8 md:h-10 w-auto object-contain" 
-                />
+                <Logo className="h-8 md:h-10" />
             </div>
 
             {/* Actions area */}

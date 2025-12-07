@@ -73,14 +73,26 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
       const currentUserRef = doc(db, 'users', currentUser.uid);
       const targetUserRef = doc(db, 'users', entry.userId);
 
+      // Note: Updating 'followers' on targetUserRef might fail due to Firestore Security Rules 
+      // preventing writes to other users' documents. We wrap it in try/catch to ensure
+      // the 'following' logic (which controls the feed) still succeeds.
+
       if (isFollowing) {
         // Unfollow
         await updateDoc(currentUserRef, { following: arrayRemove(entry.userId) });
-        await updateDoc(targetUserRef, { followers: arrayRemove(currentUser.uid) });
+        try {
+           await updateDoc(targetUserRef, { followers: arrayRemove(currentUser.uid) });
+        } catch (e) {
+           console.warn("Could not update target user's follower count (permission denied?)", e);
+        }
       } else {
         // Follow
         await updateDoc(currentUserRef, { following: arrayUnion(entry.userId) });
-        await updateDoc(targetUserRef, { followers: arrayUnion(currentUser.uid) });
+        try {
+           await updateDoc(targetUserRef, { followers: arrayUnion(currentUser.uid) });
+        } catch (e) {
+           console.warn("Could not update target user's follower count (permission denied?)", e);
+        }
       }
     } catch (error) {
       console.error("Follow error:", error);
