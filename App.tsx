@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [view, setView] = useState<ViewState>(ViewState.HOME);
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null); // Changed from object to ID
   const [editingEntry, setEditingEntry] = useState<JournalEntry | undefined>(undefined);
   
   // Modals
@@ -135,7 +135,7 @@ const App: React.FC = () => {
       if (entryId) {
         const foundEntry = fetchedEntries.find(e => e.id === entryId);
         if (foundEntry) {
-          setSelectedEntry(foundEntry);
+          setSelectedEntryId(foundEntry.id || null);
           setView(ViewState.DETAIL);
         }
       }
@@ -164,6 +164,11 @@ const App: React.FC = () => {
     });
   }, [entries, user]);
 
+  // Derive the active entry object from the ID to ensure we always have real-time data
+  const activeEntry = useMemo(() => {
+    return entries.find(e => e.id === selectedEntryId) || null;
+  }, [entries, selectedEntryId]);
+
   const handleLogout = () => {
     signOut(auth);
     setView(ViewState.HOME);
@@ -179,12 +184,12 @@ const App: React.FC = () => {
   };
 
   const handleEntrySelect = (entry: JournalEntry) => {
-    setSelectedEntry(entry);
+    setSelectedEntryId(entry.id || null);
     setView(ViewState.DETAIL);
   };
 
   const handleBackToHome = () => {
-    setSelectedEntry(null);
+    setSelectedEntryId(null);
     setEditingEntry(undefined);
     setView(ViewState.HOME);
     window.history.pushState({}, '', window.location.pathname);
@@ -284,9 +289,9 @@ const App: React.FC = () => {
            </div>
         )}
 
-        {view === ViewState.DETAIL && selectedEntry && (
+        {view === ViewState.DETAIL && activeEntry && (
           <JournalDetail 
-            entry={selectedEntry}
+            entry={activeEntry}
             currentUser={user}
             onBack={handleBackToHome}
             onEdit={handleEditEntry}

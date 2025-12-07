@@ -1,8 +1,8 @@
-import React from 'react';
-import { JournalEntry, UserProfile } from '../types';
+import React, { useState } from 'react';
+import { JournalEntry, UserProfile, Comment } from '../types';
 import { db } from '../firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon, UserPlus, UserCheck } from 'lucide-react';
+import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon, UserPlus, UserCheck, Heart, MessageCircle, Send, User } from 'lucide-react';
 
 interface JournalDetailProps {
   entry: JournalEntry;
@@ -15,6 +15,15 @@ interface JournalDetailProps {
 const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBack, onEdit, onDelete }) => {
   const isOwner = currentUser?.uid === entry.userId;
   const isFollowing = currentUser?.following?.includes(entry.userId);
+  
+  // Likes
+  const likes = entry.likes || [];
+  const isLiked = currentUser ? likes.includes(currentUser.uid) : false;
+  
+  // Comments
+  const comments = entry.comments || [];
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
 
   const handleShare = async () => {
     // Generate Deep Link
@@ -73,10 +82,6 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
       const currentUserRef = doc(db, 'users', currentUser.uid);
       const targetUserRef = doc(db, 'users', entry.userId);
 
-      // Note: Updating 'followers' on targetUserRef might fail due to Firestore Security Rules 
-      // preventing writes to other users' documents. We wrap it in try/catch to ensure
-      // the 'following' logic (which controls the feed) still succeeds.
-
       if (isFollowing) {
         // Unfollow
         await updateDoc(currentUserRef, { following: arrayRemove(entry.userId) });
@@ -97,6 +102,56 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
     } catch (error) {
       console.error("Follow error:", error);
       alert("팔로우 처리 중 오류가 발생했습니다.");
+    }
+  };
+
+  const toggleLike = async () => {
+    if (!currentUser) {
+      alert("좋아요를 누르려면 로그인이 필요합니다.");
+      return;
+    }
+    if (!entry.id) return;
+
+    const entryRef = doc(db, 'journals', entry.id);
+    try {
+      if (isLiked) {
+        await updateDoc(entryRef, { likes: arrayRemove(currentUser.uid) });
+      } else {
+        await updateDoc(entryRef, { likes: arrayUnion(currentUser.uid) });
+      }
+    } catch (error) {
+      console.error("Like error:", error);
+    }
+  };
+
+  const submitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      alert("댓글을 작성하려면 로그인이 필요합니다.");
+      return;
+    }
+    if (!newComment.trim() || !entry.id) return;
+
+    setCommentLoading(true);
+    const commentData: Comment = {
+      id: Date.now().toString(),
+      userId: currentUser.uid,
+      userName: currentUser.displayName || '익명의 대원',
+      text: newComment,
+      createdAt: Date.now()
+    };
+
+    try {
+      const entryRef = doc(db, 'journals', entry.id);
+      await updateDoc(entryRef, {
+        comments: arrayUnion(commentData)
+      });
+      setNewComment('');
+    } catch (error) {
+      console.error("Comment error:", error);
+      alert("댓글 작성에 실패했습니다.");
+    } finally {
+      setCommentLoading(false);
     }
   };
 
@@ -131,7 +186,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+      <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 pb-32">
         {/* Header */}
         <div className="mb-8 md:mb-12">
            <div className="flex items-center gap-2 mb-4 text-xs font-bold text-space-accent uppercase tracking-widest">
@@ -185,7 +240,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
 
         {/* Main Image */}
         {entry.imageUrl && (
-          <div className="mb-10 rounded-xl overflow-hidden shadow-2xl bg-gray-100 border border-gray-100">
+          <div className="mb-6 rounded-xl overflow-hidden shadow-2xl bg-gray-100 border border-gray-100">
             <img 
               src={entry.imageUrl} 
               alt={entry.title} 
@@ -198,6 +253,24 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
           </div>
         )}
 
+        {/* Social Actions (Like & Comment Counts) */}
+        <div className="flex items-center gap-6 mb-10 py-3 border-y border-gray-100">
+          <button 
+            onClick={toggleLike}
+            className={`flex items-center gap-2 font-bold transition-all ${isLiked ? 'text-red-500' : 'text-gray-500 hover:text-gray-900'}`}
+          >
+            <Heart size={24} fill={isLiked ? "currentColor" : "none"} />
+            <span className="text-lg">{likes.length}</span>
+            <span className="text-xs font-normal opacity-70">좋아요</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-gray-500">
+            <MessageCircle size={24} />
+            <span className="text-lg font-bold">{comments.length}</span>
+            <span className="text-xs font-normal opacity-70">댓글</span>
+          </div>
+        </div>
+
         {/* Body Text */}
         <div className="prose prose-lg prose-slate max-w-none mb-12">
            <p className="whitespace-pre-wrap leading-loose text-gray-700 font-serif text-lg">
@@ -209,7 +282,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
         </div>
 
         {/* Metadata Grid */}
-        <div className="bg-gray-50 rounded-xl p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 border border-gray-100">
+        <div className="bg-gray-50 rounded-xl p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 border border-gray-100 mb-12">
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Date</h4>
               <p className="text-gray-900 font-medium">{new Date(entry.createdAt).toLocaleDateString()}</p>
@@ -226,6 +299,68 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Target</h4>
               <p className="text-gray-900 font-medium">{entry.target}</p>
             </div>
+        </div>
+
+        {/* Comment Section */}
+        <div className="border-t border-gray-200 pt-10">
+          <h3 className="text-xl font-display font-bold text-gray-900 mb-6 flex items-center gap-2">
+            댓글 <span className="text-space-accent">{comments.length}</span>
+          </h3>
+
+          {/* Comment Form */}
+          <form onSubmit={submitComment} className="flex items-start gap-3 mb-10">
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+              {currentUser?.photoURL ? (
+                <img src={currentUser.photoURL} alt="Me" className="w-full h-full object-cover" />
+              ) : (
+                <User size={20} className="text-gray-400" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="relative">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder={currentUser ? "이 관측에 대한 생각을 남겨주세요..." : "로그인 후 댓글을 남길 수 있습니다."}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 pr-12 focus:outline-none focus:border-space-accent focus:bg-white transition-all resize-none h-24"
+                  disabled={!currentUser}
+                />
+                <button 
+                  type="submit" 
+                  disabled={!currentUser || !newComment.trim() || commentLoading}
+                  className="absolute bottom-3 right-3 p-2 bg-space-accent text-white rounded-full hover:bg-cyan-600 disabled:opacity-50 disabled:hover:bg-space-accent transition-colors"
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {/* Comment List */}
+          <div className="space-y-6">
+            {comments.length === 0 ? (
+              <p className="text-gray-400 text-center py-4 text-sm">아직 작성된 댓글이 없습니다. 첫 번째 댓글을 남겨보세요!</p>
+            ) : (
+              comments.map((comment) => (
+                <div key={comment.id} className="flex gap-4 group">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0 flex items-center justify-center border border-gray-100">
+                    <User size={18} className="text-gray-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-gray-50 rounded-xl rounded-tl-none p-4 inline-block min-w-[200px]">
+                      <div className="flex items-center justify-between mb-1 gap-4">
+                        <span className="font-bold text-sm text-gray-900">{comment.userName}</span>
+                        <span className="text-[10px] text-gray-400">
+                          {new Date(comment.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{comment.text}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
       </div>
