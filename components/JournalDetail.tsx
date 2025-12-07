@@ -1,6 +1,8 @@
 import React from 'react';
 import { JournalEntry, UserProfile } from '../types';
-import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon } from 'lucide-react';
+import { db } from '../firebase';
+import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon, UserPlus, UserCheck } from 'lucide-react';
 
 interface JournalDetailProps {
   entry: JournalEntry;
@@ -12,6 +14,7 @@ interface JournalDetailProps {
 
 const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBack, onEdit, onDelete }) => {
   const isOwner = currentUser?.uid === entry.userId;
+  const isFollowing = currentUser?.following?.includes(entry.userId);
 
   const handleShare = async () => {
     // Generate Deep Link
@@ -60,6 +63,31 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
     }
   };
 
+  const handleFollow = async () => {
+    if (!currentUser) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    
+    try {
+      const currentUserRef = doc(db, 'users', currentUser.uid);
+      const targetUserRef = doc(db, 'users', entry.userId);
+
+      if (isFollowing) {
+        // Unfollow
+        await updateDoc(currentUserRef, { following: arrayRemove(entry.userId) });
+        await updateDoc(targetUserRef, { followers: arrayRemove(currentUser.uid) });
+      } else {
+        // Follow
+        await updateDoc(currentUserRef, { following: arrayUnion(entry.userId) });
+        await updateDoc(targetUserRef, { followers: arrayUnion(currentUser.uid) });
+      }
+    } catch (error) {
+      console.error("Follow error:", error);
+      alert("팔로우 처리 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-y-auto scrollbar-hide animate-fade-in font-sans overscroll-contain">
       
@@ -105,15 +133,41 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
              {entry.title}
            </h1>
 
-           <div className="flex items-center gap-2 text-gray-500 text-sm">
-             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-space-accent to-purple-500 p-[1px]">
-               <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                  <Users size={14} className="text-gray-900" />
+           <div className="flex items-center flex-wrap gap-4 text-gray-500 text-sm">
+             <div className="flex items-center gap-2">
+               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-space-accent to-purple-500 p-[1px]">
+                 <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                    <Users size={14} className="text-gray-900" />
+                 </div>
                </div>
+               <span className="font-bold text-gray-900">{entry.observers}</span>
              </div>
-             <span className="font-bold text-gray-900">{entry.observers}</span>
-             <span>•</span>
-             <span>{entry.location}</span>
+             
+             {currentUser && !isOwner && (
+               <button 
+                 onClick={handleFollow}
+                 className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                   isFollowing 
+                     ? 'bg-gray-100 text-gray-600 border border-gray-300' 
+                     : 'bg-space-accent text-white hover:bg-cyan-500 shadow-md'
+                 }`}
+               >
+                 {isFollowing ? (
+                   <>
+                     <UserCheck size={14} /> 팔로잉
+                   </>
+                 ) : (
+                   <>
+                     <UserPlus size={14} /> 팔로우
+                   </>
+                 )}
+               </button>
+             )}
+
+             <span className="hidden md:inline text-gray-300">•</span>
+             <span className="flex items-center gap-1">
+               <MapPin size={14} /> {entry.location}
+             </span>
            </div>
         </div>
 

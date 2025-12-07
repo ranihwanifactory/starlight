@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, getDoc } from 'firebase/firestore';
@@ -29,42 +29,34 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Auth Listener with Firestore Profile Fetch
+  // Auth & User Profile Listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          // Fetch additional profile data from Firestore
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          
-          let additionalData = {};
-          if (userDocSnap.exists()) {
-            additionalData = userDocSnap.data();
-          }
+    let unsubscribeProfile: (() => void) | undefined;
 
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // Set up real-time listener for user profile (to track following list changes)
+        unsubscribeProfile = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
+          const data = docSnap.data();
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
-            ...additionalData 
-          });
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-          });
-        }
+            ...data
+          } as UserProfile);
+        });
       } else {
+        if (unsubscribeProfile) unsubscribeProfile();
         setUser(null);
       }
       setLoading(false);
     });
-    return unsubscribe;
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   // PWA Install Prompt Listener
@@ -114,6 +106,25 @@ const App: React.FC = () => {
     });
     return unsubscribe;
   }, []);
+
+  // Sort entries: Followed users first, then by date
+  const sortedEntries = useMemo(() => {
+    if (!user || !user.following || user.following.length === 0) {
+      return entries;
+    }
+
+    return [...entries].sort((a, b) => {
+      const isAFollowed = user.following?.includes(a.userId) ? 1 : 0;
+      const isBFollowed = user.following?.includes(b.userId) ? 1 : 0;
+
+      // 1. Priority to followed users
+      if (isAFollowed > isBFollowed) return -1;
+      if (isAFollowed < isBFollowed) return 1;
+
+      // 2. Then sort by date (newest first)
+      return b.createdAt - a.createdAt;
+    });
+  }, [entries, user]);
 
   const handleLogout = () => {
     signOut(auth);
@@ -221,7 +232,7 @@ const App: React.FC = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-space-accent"></div>
               </div>
             ) : (
-              <JournalList entries={entries} onSelect={handleEntrySelect} currentUser={user} />
+              <JournalList entries={sortedEntries} onSelect={handleEntrySelect} currentUser={user} />
             )}
           </div>
         )}
