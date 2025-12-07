@@ -163,7 +163,7 @@ const App: React.FC = () => {
       {/* Navigation - Feed Style Header */}
       {view !== ViewState.DETAIL && (
         <nav className="fixed top-0 left-0 right-0 z-40 bg-black/90 md:bg-space-900/90 backdrop-blur-md border-b border-white/10 pt-safe transition-all duration-300">
-          <div className="max-w-5xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
             {/* Logo area */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleBackToHome}>
                 <h1 className="text-xl md:text-2xl font-display text-white tracking-widest uppercase italic">
@@ -215,7 +215,7 @@ const App: React.FC = () => {
       <main className={`min-h-[100dvh] w-full ${view !== ViewState.DETAIL ? 'pt-20 pb-12' : ''}`}>
         
         {view === ViewState.HOME && (
-          <div className="px-0 md:px-4">
+          <div className="px-0 md:px-6 max-w-7xl mx-auto">
             {loading ? (
               <div className="flex justify-center py-20">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-space-accent"></div>
