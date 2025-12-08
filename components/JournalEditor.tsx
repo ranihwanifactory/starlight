@@ -3,8 +3,9 @@ import { JournalEntry, UserProfile } from '../types';
 import { db, storage } from '../firebase';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Camera, Sparkles, Save, X, Calendar, MapPin, Telescope, Users, Link as LinkIcon, Upload, Navigation } from 'lucide-react';
+import { Camera, Sparkles, Save, X, Calendar, MapPin, Telescope, Users, Link as LinkIcon, Upload, Navigation, Map as MapIcon } from 'lucide-react';
 import { enhanceJournalEntry } from '../services/geminiService';
+import LocationPicker from './LocationPicker';
 
 interface JournalEditorProps {
   user: UserProfile;
@@ -33,6 +34,9 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Map Picker State
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,6 +93,30 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
     setAiLoading(false);
   };
 
+  // Shared function to reverse geocode coords -> address string
+  const performReverseGeocoding = async (latitude: number, longitude: number) => {
+    setGeoLoading(true);
+    try {
+        const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+        );
+        const data = await response.json();
+        const addr = data.address;
+        // Construct a readable address
+        const city = addr.city || addr.town || addr.village || addr.county || '';
+        const state = addr.state || '';
+        const road = addr.road || '';
+        const fullLocation = `${state} ${city} ${road}`.trim() || data.display_name.split(',')[0];
+        
+        setLocation(fullLocation);
+    } catch (error) {
+        console.error("Reverse geocoding failed", error);
+        // Fallback: don't clear location, user might have typed it.
+    } finally {
+        setGeoLoading(false);
+    }
+  };
+
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
@@ -100,26 +128,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       async (position) => {
         const { latitude, longitude } = position.coords;
         setCoordinates({ lat: latitude, lng: longitude });
-
-        // Reverse Geocoding via OpenStreetMap (Nominatim)
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-          );
-          const data = await response.json();
-          const addr = data.address;
-          // Construct a readable address
-          const city = addr.city || addr.town || addr.village || addr.county || '';
-          const state = addr.state || '';
-          const fullLocation = `${state} ${city}`.trim() || data.display_name.split(',')[0];
-          
-          setLocation(fullLocation);
-        } catch (error) {
-          console.error("Reverse geocoding failed", error);
-          // Fallback if reverse geo fails, just keep coords
-        } finally {
-          setGeoLoading(false);
-        }
+        await performReverseGeocoding(latitude, longitude);
       },
       (error) => {
         console.error("Geolocation error", error);
@@ -128,6 +137,12 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       },
       { enableHighAccuracy: true }
     );
+  };
+
+  const handleMapConfirm = async (lat: number, lng: number) => {
+      setCoordinates({ lat, lng });
+      setIsMapPickerOpen(false);
+      await performReverseGeocoding(lat, lng);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,6 +202,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
   };
 
   return (
+    <>
     <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 shadow-xl p-4 md:p-8 animate-fade-in relative z-20 my-4 md:my-8 mb-20 md:mb-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl md:text-3xl font-display text-gray-900">
@@ -347,15 +363,27 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
                     placeholder="예: 뒷마당, 천문대"
                     className="flex-1 bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
                 />
-                <button 
-                  type="button"
-                  onClick={handleGetCurrentLocation}
-                  disabled={geoLoading}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-lg transition-colors"
-                  title="현 위치 가져오기"
-                >
-                  <Navigation size={20} className={geoLoading ? "animate-spin" : ""} />
-                </button>
+                
+                {/* Location Actions */}
+                <div className="flex gap-1">
+                    <button 
+                    type="button"
+                    onClick={() => setIsMapPickerOpen(true)}
+                    className="bg-gray-100 hover:bg-space-accent hover:text-white text-gray-700 p-3 rounded-lg transition-colors border border-gray-200"
+                    title="지도에서 선택"
+                    >
+                    <MapIcon size={20} />
+                    </button>
+                    <button 
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    disabled={geoLoading}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-lg transition-colors border border-gray-200"
+                    title="현 위치 가져오기"
+                    >
+                    <Navigation size={20} className={geoLoading ? "animate-spin" : ""} />
+                    </button>
+                </div>
               </div>
               {coordinates && (
                 <p className="text-[10px] text-space-accent mt-1 flex items-center gap-1">
@@ -419,7 +447,17 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
           </button>
         </div>
       </form>
+
+      {/* Map Picker Modal */}
+      <LocationPicker 
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        onConfirm={handleMapConfirm}
+        initialLat={coordinates?.lat}
+        initialLng={coordinates?.lng}
+      />
     </div>
+    </>
   );
 };
 

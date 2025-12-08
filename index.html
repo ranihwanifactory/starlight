@@ -40,6 +40,15 @@
                 dark: '#111827', // New dark text color
                 light: '#F3F4F6', // New light bg
               }
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-out forwards',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
             }
           }
         }

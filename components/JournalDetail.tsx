@@ -327,43 +327,45 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
             </div>
         </div>
         
-        {/* Gemini Maps Grounding Section */}
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-6 border border-blue-100 mb-12 animate-fade-in">
-             <div className="flex items-center gap-2 mb-4">
-                <Sparkles size={20} className="text-space-accent" />
-                <h3 className="font-display font-bold text-lg text-gray-900">AI Location Insight</h3>
-             </div>
-             
-             {aiLoading ? (
-                 <div className="flex items-center gap-2 text-gray-500 text-sm">
-                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-space-accent border-t-transparent"></div>
-                     Gemini가 위치 정보를 분석하고 있습니다...
-                 </div>
-             ) : (
-                 <>
-                    <p className="text-gray-700 leading-relaxed text-sm mb-4">
-                        {aiLocationInfo?.text || "위치 정보를 불러올 수 없습니다."}
-                    </p>
-                    {aiLocationInfo && aiLocationInfo.links.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            {aiLocationInfo.links.map((link, idx) => (
-                                <a 
-                                    key={idx} 
-                                    href={link.uri} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-50 transition-colors"
-                                >
-                                    <MapPin size={12} />
-                                    {link.title}
-                                    <ExternalLink size={10} />
-                                </a>
-                            ))}
-                        </div>
-                    )}
-                 </>
-             )}
-        </div>
+        {/* Gemini Maps Grounding Section - Render only if we have data or are loading */}
+        {(aiLoading || aiLocationInfo) && (
+          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-6 border border-blue-100 mb-12 animate-fade-in">
+               <div className="flex items-center gap-2 mb-4">
+                  <Sparkles size={20} className="text-space-accent" />
+                  <h3 className="font-display font-bold text-lg text-gray-900">AI Location Insight</h3>
+               </div>
+               
+               {aiLoading ? (
+                   <div className="flex items-center gap-2 text-gray-500 text-sm">
+                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-space-accent border-t-transparent"></div>
+                       Gemini가 위치 정보를 분석하고 있습니다...
+                   </div>
+               ) : (
+                   <>
+                      <p className="text-gray-700 leading-relaxed text-sm mb-4">
+                          {aiLocationInfo?.text}
+                      </p>
+                      {aiLocationInfo && aiLocationInfo.links.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                              {aiLocationInfo.links.map((link, idx) => (
+                                  <a 
+                                      key={idx} 
+                                      href={link.uri} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-50 transition-colors"
+                                  >
+                                      <MapPin size={12} />
+                                      {link.title}
+                                      <ExternalLink size={10} />
+                                  </a>
+                              ))}
+                          </div>
+                      )}
+                   </>
+               )}
+          </div>
+        )}
 
         {/* Comment Section */}
         <div className="border-t border-gray-200 pt-10">

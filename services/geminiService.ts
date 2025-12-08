@@ -1,8 +1,45 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.API_KEY || ""; 
+// Vercel 및 다양한 환경(Vite, CRA 등)에서 API Key를 안전하게 가져오기 위한 유틸리티 함수
+const getApiKey = (): string => {
+  let key = "";
+  
+  try {
+    // 1. process.env 체크 (Standard Node/CRA/Next.js/Webpack)
+    // 브라우저 환경에서 ReferenceError를 방지하기 위해 try-catch로 감싸고 typeof 체크
+    if (typeof process !== 'undefined' && process && process.env) {
+      if (process.env.API_KEY) key = process.env.API_KEY;
+      else if (process.env.REACT_APP_API_KEY) key = process.env.REACT_APP_API_KEY;
+      else if (process.env.VITE_API_KEY) key = process.env.VITE_API_KEY;
+    }
+  } catch (e) {
+    // process 접근 에러 무시
+  }
 
-const ai = new GoogleGenAI({ apiKey });
+  // 2. import.meta.env 체크 (Vite Client Side)
+  if (!key) {
+    try {
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta.env) {
+          // @ts-ignore
+          if (import.meta.env.VITE_API_KEY) key = import.meta.env.VITE_API_KEY;
+          // @ts-ignore
+          else if (import.meta.env.API_KEY) key = import.meta.env.API_KEY;
+      }
+    } catch (e) {
+      // import.meta 에러 무시
+    }
+  }
+  
+  return key;
+};
+
+const apiKey = getApiKey();
+
+// API 키가 없으면 빈 문자열로 초기화 (요청 시 체크)
+// "MISSING_KEY" 같은 더미 값을 넣으면 특정 검증에서 실패할 수 있으므로 빈 값 허용되는지 확인 필요하나, 
+// GoogleGenAI SDK는 보통 요청 시점에 키를 사용함.
+const ai = new GoogleGenAI({ apiKey: apiKey || "NO_KEY_PROVIDED" });
 
 export const enhanceJournalEntry = async (text: string, target: string): Promise<string> => {
   if (!apiKey) {
@@ -34,8 +71,8 @@ export const enhanceJournalEntry = async (text: string, target: string): Promise
   }
 };
 
-export const getLocationInfo = async (location: string, lat?: number, lng?: number): Promise<{text: string, links: {title: string, uri: string}[]}> => {
-  if (!apiKey) return { text: "API Key unavailable.", links: [] };
+export const getLocationInfo = async (location: string, lat?: number, lng?: number): Promise<{text: string, links: {title: string, uri: string}[]} | null> => {
+  if (!apiKey) return null;
 
   try {
     const prompt = `
@@ -87,6 +124,6 @@ export const getLocationInfo = async (location: string, lat?: number, lng?: numb
 
   } catch (error) {
       console.error("Gemini Location Grounding failed:", error);
-      return { text: "Could not retrieve location info.", links: [] };
+      return null;
   }
 }
