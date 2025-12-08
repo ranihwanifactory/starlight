@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { JournalEntry, UserProfile, Comment } from '../types';
 import { db } from '../firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon, UserPlus, UserCheck, Heart, MessageCircle, Send, User } from 'lucide-react';
+import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon, UserPlus, UserCheck, Heart, MessageCircle, Send, User, Sparkles } from 'lucide-react';
+import { getLocationInfo } from '../services/geminiService';
 
 interface JournalDetailProps {
   entry: JournalEntry;
@@ -24,6 +25,31 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
   const comments = entry.comments || [];
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+
+  // AI Location Info
+  const [aiLocationInfo, setAiLocationInfo] = useState<{text: string, links: {title: string, uri: string}[]} | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // Fetch AI Location info on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLocationInfo = async () => {
+        if (!entry.location) return;
+        setAiLoading(true);
+        try {
+            const lat = entry.coordinates?.lat;
+            const lng = entry.coordinates?.lng;
+            const info = await getLocationInfo(entry.location, lat, lng);
+            if (isMounted) setAiLocationInfo(info);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            if (isMounted) setAiLoading(false);
+        }
+    };
+    fetchLocationInfo();
+    return () => { isMounted = false; };
+  }, [entry.location, entry.coordinates]);
 
   const handleShare = async () => {
     // Generate Deep Link
@@ -299,6 +325,44 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Target</h4>
               <p className="text-gray-900 font-medium">{entry.target}</p>
             </div>
+        </div>
+        
+        {/* Gemini Maps Grounding Section */}
+        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-6 border border-blue-100 mb-12 animate-fade-in">
+             <div className="flex items-center gap-2 mb-4">
+                <Sparkles size={20} className="text-space-accent" />
+                <h3 className="font-display font-bold text-lg text-gray-900">AI Location Insight</h3>
+             </div>
+             
+             {aiLoading ? (
+                 <div className="flex items-center gap-2 text-gray-500 text-sm">
+                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-space-accent border-t-transparent"></div>
+                     Gemini가 위치 정보를 분석하고 있습니다...
+                 </div>
+             ) : (
+                 <>
+                    <p className="text-gray-700 leading-relaxed text-sm mb-4">
+                        {aiLocationInfo?.text || "위치 정보를 불러올 수 없습니다."}
+                    </p>
+                    {aiLocationInfo && aiLocationInfo.links.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {aiLocationInfo.links.map((link, idx) => (
+                                <a 
+                                    key={idx} 
+                                    href={link.uri} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-50 transition-colors"
+                                >
+                                    <MapPin size={12} />
+                                    {link.title}
+                                    <ExternalLink size={10} />
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                 </>
+             )}
         </div>
 
         {/* Comment Section */}

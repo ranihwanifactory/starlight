@@ -3,7 +3,7 @@ import { JournalEntry, UserProfile } from '../types';
 import { db, storage } from '../firebase';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Camera, Sparkles, Save, X, Calendar, MapPin, Telescope, Users, Link as LinkIcon, Upload } from 'lucide-react';
+import { Camera, Sparkles, Save, X, Calendar, MapPin, Telescope, Users, Link as LinkIcon, Upload, Navigation } from 'lucide-react';
 import { enhanceJournalEntry } from '../services/geminiService';
 
 interface JournalEditorProps {
@@ -16,9 +16,13 @@ interface JournalEditorProps {
 const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCancel, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [location, setLocation] = useState('');
+  const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | undefined>(undefined);
+  
   const [equipment, setEquipment] = useState('');
   const [target, setTarget] = useState('');
   const [description, setDescription] = useState('');
@@ -38,6 +42,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
       setTitle(initialData.title);
       setDate(initialData.date);
       setLocation(initialData.location);
+      setCoordinates(initialData.coordinates);
       setEquipment(initialData.equipment);
       setTarget(initialData.target);
       setDescription(initialData.description);
@@ -84,6 +89,47 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
     setAiLoading(false);
   };
 
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
+      return;
+    }
+
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setCoordinates({ lat: latitude, lng: longitude });
+
+        // Reverse Geocoding via OpenStreetMap (Nominatim)
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          const data = await response.json();
+          const addr = data.address;
+          // Construct a readable address
+          const city = addr.city || addr.town || addr.village || addr.county || '';
+          const state = addr.state || '';
+          const fullLocation = `${state} ${city}`.trim() || data.display_name.split(',')[0];
+          
+          setLocation(fullLocation);
+        } catch (error) {
+          console.error("Reverse geocoding failed", error);
+          // Fallback if reverse geo fails, just keep coords
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error", error);
+        alert("위치 정보를 가져올 수 없습니다. 권한을 확인해주세요.");
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) return;
@@ -101,12 +147,12 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
         // Option 2: Use provided URL directly
         imageUrl = urlInput;
       }
-      // Option 3: Keep existing initialData.imageUrl (already assigned default)
 
       const entryData: Partial<JournalEntry> = {
         title,
         date,
         location,
+        coordinates, // Save coordinates
         equipment,
         target,
         description,
@@ -293,13 +339,30 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ user, initialData, onCanc
               <label className="block text-gray-700 text-sm font-bold uppercase mb-1 flex items-center gap-2">
                 <MapPin size={14} /> 관측 장소
               </label>
-              <input
-                type="text"
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-                placeholder="예: 뒷마당, 천문대"
-                className="w-full bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
-              />
+              <div className="flex gap-2">
+                <input
+                    type="text"
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    placeholder="예: 뒷마당, 천문대"
+                    className="flex-1 bg-gray-50 border border-gray-300 text-gray-900 p-3 rounded-lg focus:border-space-accent focus:outline-none text-base"
+                />
+                <button 
+                  type="button"
+                  onClick={handleGetCurrentLocation}
+                  disabled={geoLoading}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-lg transition-colors"
+                  title="현 위치 가져오기"
+                >
+                  <Navigation size={20} className={geoLoading ? "animate-spin" : ""} />
+                </button>
+              </div>
+              {coordinates && (
+                <p className="text-[10px] text-space-accent mt-1 flex items-center gap-1">
+                   <MapPin size={10} />
+                   좌표 저장됨: {coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}
+                </p>
+              )}
             </div>
 
              <div>

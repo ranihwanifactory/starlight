@@ -11,6 +11,10 @@ export interface JournalEntry {
   title: string;
   date: string;
   location: string;
+  coordinates?: { // Added for Map View
+    lat: number;
+    lng: number;
+  };
   equipment: string;
   target: string;
   description: string;
@@ -38,6 +42,7 @@ export interface UserProfile {
 
 export enum ViewState {
   HOME = 'HOME',
+  MAP = 'MAP', // Added Map View
   CREATE = 'CREATE',
   DETAIL = 'DETAIL',
 }

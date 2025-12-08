@@ -7,20 +7,21 @@ import { JournalEntry, UserProfile, ViewState } from './types';
 // Components
 import StarBackground from './components/StarBackground';
 import JournalList from './components/JournalList';
+import JournalMap from './components/JournalMap'; // New Map Component
 import JournalEditor from './components/JournalEditor';
 import JournalDetail from './components/JournalDetail';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
-import Logo from './components/Logo'; // Import the new Logo component
+import Logo from './components/Logo'; 
 
 // Icons
-import { Rocket, PlusSquare, LogOut, User, Download, Heart, Settings } from 'lucide-react';
+import { Rocket, PlusSquare, LogOut, User, Download, Heart, Settings, Map, List } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [view, setView] = useState<ViewState>(ViewState.HOME);
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null); // Changed from object to ID
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null); 
   const [editingEntry, setEditingEntry] = useState<JournalEntry | undefined>(undefined);
   
   // Modals
@@ -210,6 +211,14 @@ const App: React.FC = () => {
     }
   };
 
+  const toggleViewMode = () => {
+    if (view === ViewState.HOME) {
+        setView(ViewState.MAP);
+    } else if (view === ViewState.MAP) {
+        setView(ViewState.HOME);
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] text-gray-900 font-sans selection:bg-space-accent selection:text-white overflow-x-hidden bg-white">
       <StarBackground />
@@ -231,6 +240,15 @@ const App: React.FC = () => {
                 </button>
               )}
               
+              {/* Map Toggle Button */}
+              <button 
+                onClick={toggleViewMode} 
+                className={`text-gray-700 transition-colors ${view === ViewState.MAP ? 'text-space-accent' : 'hover:text-space-accent'}`}
+                title={view === ViewState.MAP ? "리스트 보기" : "지도 보기"}
+              >
+                {view === ViewState.MAP ? <List size={24} /> : <Map size={24} />}
+              </button>
+
               <button onClick={handleCreateClick} className="text-gray-700 hover:text-space-accent transition-colors">
                  <PlusSquare size={24} />
               </button>
@@ -276,6 +294,12 @@ const App: React.FC = () => {
               <JournalList entries={sortedEntries} onSelect={handleEntrySelect} currentUser={user} />
             )}
           </div>
+        )}
+
+        {view === ViewState.MAP && (
+           <div className="px-4 md:px-6 max-w-7xl mx-auto h-[calc(100vh-140px)]">
+             <JournalMap entries={sortedEntries} onSelect={handleEntrySelect} />
+           </div>
         )}
 
         {view === ViewState.CREATE && user && (

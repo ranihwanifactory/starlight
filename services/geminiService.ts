@@ -33,3 +33,60 @@ export const enhanceJournalEntry = async (text: string, target: string): Promise
     return text; // Fallback to original text
   }
 };
+
+export const getLocationInfo = async (location: string, lat?: number, lng?: number): Promise<{text: string, links: {title: string, uri: string}[]}> => {
+  if (!apiKey) return { text: "API Key unavailable.", links: [] };
+
+  try {
+    const prompt = `
+      Tell me interesting astronomical or geographical facts about this location: ${location}.
+      If coordinates are provided (${lat}, ${lng}), use them to be precise about the viewing conditions (light pollution, altitude, etc) for astronomy.
+      Keep it brief and inspiring for a stargazer.
+    `;
+
+    const toolConfig: any = {};
+    if (lat && lng) {
+        toolConfig.retrievalConfig = {
+            latLng: { latitude: lat, longitude: lng }
+        };
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        tools: [{googleMaps: {}}],
+        toolConfig: toolConfig
+      }
+    });
+
+    // Extract Maps Grounding URLs
+    const links: {title: string, uri: string}[] = [];
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    
+    chunks.forEach((chunk: any) => {
+        if (chunk.web?.uri) {
+            links.push({ title: chunk.web.title || 'Web Source', uri: chunk.web.uri });
+        }
+        if (chunk.maps?.uri) { // Maps specific URI
+             links.push({ title: chunk.maps.title || 'Google Maps', uri: chunk.maps.uri });
+        }
+    });
+    
+    // De-duplicate links
+    const uniqueLinks = links.filter((link, index, self) =>
+        index === self.findIndex((t) => (
+            t.uri === link.uri
+        ))
+    );
+
+    return {
+        text: response.text || "No information available.",
+        links: uniqueLinks
+    };
+
+  } catch (error) {
+      console.error("Gemini Location Grounding failed:", error);
+      return { text: "Could not retrieve location info.", links: [] };
+  }
+}
