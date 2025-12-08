@@ -76,9 +76,9 @@ export const getLocationInfo = async (location: string, lat?: number, lng?: numb
 
   try {
     const prompt = `
-      Tell me interesting astronomical or geographical facts about this location: ${location}.
-      If coordinates are provided (${lat}, ${lng}), use them to be precise about the viewing conditions (light pollution, altitude, etc) for astronomy.
-      Keep it brief and inspiring for a stargazer.
+      이 장소(${location})에 대한 흥미로운 천문학적 또는 지리학적 사실을 한국어로 알려주세요.
+      좌표(${lat}, ${lng})가 있다면, 천체 관측을 위한 관측 조건(광공해, 고도 등)을 정확하게 분석해주세요.
+      별을 사랑하는 사람들에게 영감을 줄 수 있도록 간결하고 시적인 어조로 한국어로 작성해주세요.
     `;
 
     const toolConfig: any = {};
