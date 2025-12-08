@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Starlight Journal</title>
+    <title>우주스타그램</title>
     
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FFFFFF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Starlight" />
+    <meta name="apple-mobile-web-app-title" content="우주스타그램" />
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/512/telescope.png" />
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -89,6 +89,17 @@
       }
       .leaflet-bottom, .leaflet-top {
         z-index: 20 !important;
+      }
+
+      /* Custom Leaflet Tooltip for Image Preview */
+      .leaflet-tooltip.custom-tooltip {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .leaflet-tooltip.custom-tooltip::before {
+        display: none;
       }
     </style>
   <script type="importmap">

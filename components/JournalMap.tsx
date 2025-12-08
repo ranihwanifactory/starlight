@@ -44,21 +44,38 @@ const JournalMap: React.FC<JournalMapProps> = ({ entries, onSelect }) => {
     entries.forEach(entry => {
         if (entry.coordinates && entry.coordinates.lat && entry.coordinates.lng) {
             const marker = L.marker([entry.coordinates.lat, entry.coordinates.lng])
-                .addTo(mapInstance.current)
-                .bindPopup(`
-                    <div style="text-align:center; min-width: 150px;">
-                        <h3 style="font-weight:bold; margin-bottom:4px;">${entry.title}</h3>
-                        <p style="font-size:12px; color:#666; margin:0;">${entry.target}</p>
-                        ${entry.imageUrl ? `<img src="${entry.imageUrl}" style="width:100%; height:80px; object-fit:cover; margin-top:8px; border-radius:4px;" />` : ''}
-                    </div>
-                `);
+                .addTo(mapInstance.current);
+
+            // Popup (Click) - Shows detail
+            marker.bindPopup(`
+                <div style="text-align:center; min-width: 150px;">
+                    <h3 style="font-weight:bold; margin-bottom:4px;">${entry.title}</h3>
+                    <p style="font-size:12px; color:#666; margin:0;">${entry.target}</p>
+                    ${entry.imageUrl ? `<img src="${entry.imageUrl}" style="width:100%; height:80px; object-fit:cover; margin-top:8px; border-radius:4px;" />` : ''}
+                </div>
+            `);
             
-            // Custom click handler
-            marker.on('popupopen', () => {
-                 // We could auto-select, but popup is nice. 
-                 // Let's add a button inside popup via DOM manipulation if needed, or just let user click the item in list.
-            });
-            
+            // Tooltip (Hover) - Shows Image Thumbnail
+            if (entry.imageUrl) {
+               // Use custom tooltip class defined in index.html
+               marker.bindTooltip(
+                 `<div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 3px solid white; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); background: white;">
+                    <img src="${entry.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>`, 
+                 {
+                   direction: 'top',
+                   className: 'custom-tooltip', // Defined in index.html to be transparent/borderless
+                   offset: [0, -40],
+                   opacity: 1
+                 }
+               );
+            } else {
+               marker.bindTooltip(entry.title, {
+                   direction: 'top',
+                   offset: [0, -30]
+               });
+            }
+
             // Add click event to marker to select entry
             marker.on('click', () => {
                 onSelect(entry);
