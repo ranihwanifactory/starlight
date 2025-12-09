@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { JournalEntry } from '../types';
 
@@ -28,6 +29,12 @@ const JournalMap: React.FC<JournalMapProps> = ({ entries, onSelect }) => {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(mapInstance.current);
     }
+
+    // Fix: Invalidate size to ensure map renders tiles correctly after mounting
+    // This is often needed when the map container is initially hidden or animating
+    setTimeout(() => {
+        mapInstance.current?.invalidateSize();
+    }, 100);
 
     // Clear existing markers (by removing standard layers except tile layer)
     // For simplicity, we just rebuild markers. A better way in production is managing a layer group.
@@ -88,7 +95,10 @@ const JournalMap: React.FC<JournalMapProps> = ({ entries, onSelect }) => {
 
     // Fit bounds if markers exist
     if (hasMarkers) {
-        mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
+        // Adding a small timeout to fitBounds as well ensures it happens after invalidateSize
+        setTimeout(() => {
+             mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
+        }, 150);
     }
 
   }, [entries, onSelect]);
