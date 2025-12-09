@@ -15,6 +15,7 @@ import JournalDetail from './components/JournalDetail';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
 import Logo from './components/Logo'; 
+import Footer from './components/Footer';
 
 // Icons
 import { Rocket, PlusSquare, LogOut, User, Download, Heart, Settings, Map, List, Calendar } from 'lucide-react';
@@ -230,7 +231,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] text-gray-900 font-sans selection:bg-space-accent selection:text-white overflow-x-hidden bg-white">
+    <div className="min-h-[100dvh] text-gray-900 font-sans selection:bg-space-accent selection:text-white overflow-x-hidden bg-white flex flex-col">
       <StarBackground />
       
       {/* Navigation - Feed Style Header */}
@@ -310,7 +311,7 @@ const App: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <main className={`min-h-[100dvh] w-full ${view !== ViewState.DETAIL ? 'pt-20 pb-12' : ''}`}>
+      <main className={`min-h-[100dvh] w-full flex-grow ${view !== ViewState.DETAIL ? 'pt-20' : ''}`}>
         
         {view === ViewState.HOME && (
           <div className="px-0 md:px-6 max-w-7xl mx-auto">
@@ -361,6 +362,10 @@ const App: React.FC = () => {
             onLoginRequired={() => setAuthModalOpen(true)}
           />
         )}
+        
+        {/* Footer */}
+        {view !== ViewState.DETAIL && <Footer />}
+
       </main>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setAuthModalOpen(false)} />
