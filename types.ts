@@ -50,9 +50,13 @@ export enum ViewState {
 }
 
 export interface AstronomicalEvent {
+  id?: string; // Optional for static events, required for DB events
   date: string; // YYYY-MM-DD
   title: string;
   description: string;
   time?: string;
-  type: 'meteor' | 'planet' | 'moon' | 'eclipse' | 'other';
+  type: 'meteor' | 'planet' | 'moon' | 'eclipse' | 'other' | 'user'; // Added 'user' type
+  userId?: string; // For user-generated events
+  authorName?: string; // For user-generated events
+  createdAt?: number;
 }

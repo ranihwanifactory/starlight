@@ -122,8 +122,11 @@ const App: React.FC = () => {
   };
 
   // Data Fetching & Deep Linking
+  // Added user?.uid dependency to re-subscribe when auth state changes (login/logout)
   useEffect(() => {
-    // Only listen to feed if not loading, but simple logic is fine
+    // NOTE: Firestore Security Rules (firestore.rules) must allow public read for 'journals'
+    // match /journals/{journalId} { allow read: if true; }
+
     const q = query(collection(db, 'journals'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedEntries = snapshot.docs.map(doc => ({
@@ -144,9 +147,14 @@ const App: React.FC = () => {
       }
     }, (error) => {
       console.error("Journal sync error:", error);
+      // If permission denied (likely due to rules requiring auth), warn developer and clear entries
+      if (error.code === 'permission-denied') {
+          console.warn("접근 권한이 없습니다. firestore.rules에서 'allow read: if true;' 설정이 되어 있는지 확인해주세요.");
+          setEntries([]);
+      }
     });
     return unsubscribe;
-  }, []);
+  }, [user?.uid]);
 
   // Sort entries: Followed users first, then by date
   const sortedEntries = useMemo(() => {
@@ -324,7 +332,11 @@ const App: React.FC = () => {
 
         {view === ViewState.CALENDAR && (
            <div className="px-4 md:px-6 max-w-7xl mx-auto">
-             <AstronomicalCalendar onBack={() => setView(ViewState.HOME)} />
+             <AstronomicalCalendar 
+               onBack={() => setView(ViewState.HOME)} 
+               currentUser={user}
+               onLoginRequired={() => setAuthModalOpen(true)}
+             />
            </div>
         )}
 

@@ -1,0 +1,58 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // === 헬퍼 함수 ===
+    
+    // 로그인 여부 확인
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // 본인 확인 (문서의 userId 필드와 로그인한 사용자의 UID가 일치하는지)
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // === 컬렉션 규칙 ===
+
+    // 1. 사용자 프로필 (Users)
+    // - 읽기: 누구나 가능 (비회원 포함)
+    // - 쓰기: 본인만 가능
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 2. 관측 일지 (Journals)
+    // - 읽기: 누구나 가능 (비회원에게 갤러리 공개)
+    // - 생성: 로그인한 사용자만 가능 (단, 본인의 userId로만 생성 가능)
+    // - 수정: 
+    //    a) 작성자(Owner)는 모든 필드 수정 가능
+    //    b) 타인은 'likes'(좋아요), 'comments'(댓글) 필드만 수정 가능 (소셜 기능)
+    // - 삭제: 작성자만 가능
+    match /journals/{journalId} {
+      allow read: if true;
+      
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      allow update: if isSignedIn() && (
+        isOwner(resource.data.userId) || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments'])
+      );
+      
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // 3. 천문 달력 (Calendar Events)
+    // - 읽기: 누구나 가능
+    // - 생성: 로그인한 사용자만 가능
+    // - 수정/삭제: 작성자만 가능
+    match /calendar_events/{eventId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+  }
+}

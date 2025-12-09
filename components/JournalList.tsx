@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { JournalEntry, UserProfile, Comment } from '../types';
 import { Telescope, Heart, MessageCircle, MapPin } from 'lucide-react';
@@ -11,12 +12,18 @@ interface JournalListProps {
 const JournalList: React.FC<JournalListProps> = ({ entries, onSelect, currentUser }) => {
   if (entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 text-gray-500">
+      <div className="flex flex-col items-center justify-center py-32 text-gray-500 animate-fade-in">
         <div className="w-24 h-24 rounded-full border-2 border-gray-300 flex items-center justify-center mb-4 bg-white">
            <Telescope size={40} className="opacity-50" />
         </div>
-        <h3 className="text-xl font-display text-gray-900 mb-2">게시물 없음</h3>
-        <p className="font-serif text-sm">첫 번째 우주 관측 기록을 남겨보세요.</p>
+        <h3 className="text-xl font-display text-gray-900 mb-2">
+            {currentUser ? "게시물 없음" : "관측 기록이 없습니다"}
+        </h3>
+        <p className="font-serif text-sm text-center px-4 max-w-xs leading-relaxed">
+            {currentUser 
+             ? "첫 번째 우주 관측 기록을 남겨보세요." 
+             : "현재 공개된 관측 기록이 없습니다. 로그인하여 첫 기록을 남겨보세요!"}
+        </p>
       </div>
     );
   }

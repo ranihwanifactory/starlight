@@ -1,16 +1,57 @@
 
-import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Star, Moon, Sun, Info } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Star, Moon, Info, Plus, Clock, User, Save } from 'lucide-react';
 import { astronomicalEvents2025 } from '../data/astronomicalEvents';
-import { AstronomicalEvent } from '../types';
+import { AstronomicalEvent, UserProfile } from '../types';
+import { db } from '../firebase';
+import { collection, onSnapshot, addDoc, query, orderBy } from 'firebase/firestore';
 
 interface CalendarProps {
   onBack: () => void;
+  currentUser: UserProfile | null;
+  onLoginRequired: () => void;
 }
 
-const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
+const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, onLoginRequired }) => {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 0, 1)); // Start at Jan 2025
   const [selectedDateEvents, setSelectedDateEvents] = useState<{ date: string, events: AstronomicalEvent[] } | null>(null);
+  
+  // Custom Events State
+  const [customEvents, setCustomEvents] = useState<AstronomicalEvent[]>([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  // Add Event Form State
+  const [newEvent, setNewEvent] = useState<Partial<AstronomicalEvent>>({
+      type: 'user',
+      date: new Date().toISOString().split('T')[0]
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch Custom Events from Firestore
+  useEffect(() => {
+    // NOTE: Firestore Security Rules (firestore.rules) must allow public read for 'calendar_events'
+    // match /calendar_events/{eventId} { allow read: if true; }
+
+    const q = query(collection(db, 'calendar_events'), orderBy('date', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const events = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as AstronomicalEvent));
+        setCustomEvents(events);
+    }, (error) => {
+        console.error("Error fetching calendar events:", error);
+        if (error.code === 'permission-denied') {
+            console.warn("캘린더 접근 권한이 없습니다. firestore.rules를 확인해주세요.");
+        }
+    });
+    return unsubscribe;
+  }, []);
+
+  // Merge static and custom events
+  const allEvents = useMemo(() => {
+      return [...astronomicalEvents2025, ...customEvents];
+  }, [customEvents]);
 
   // Calendar Logic
   const year = currentDate.getFullYear();
@@ -34,11 +75,49 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
 
   const handleDateClick = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const events = astronomicalEvents2025.filter(e => e.date === dateStr);
+    const events = allEvents.filter(e => e.date === dateStr);
     
+    // Allow clicking empty days to add event if logged in? 
+    // For now, only show details if event exists. To add event, use the button.
     if (events.length > 0) {
       setSelectedDateEvents({ date: dateStr, events });
     }
+  };
+
+  const openAddModal = () => {
+      if (!currentUser) {
+          onLoginRequired();
+          return;
+      }
+      setNewEvent({
+          type: 'user',
+          date: new Date().toISOString().split('T')[0],
+          title: '',
+          description: '',
+          time: ''
+      });
+      setIsAddModalOpen(true);
+  };
+
+  const handleSaveEvent = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!currentUser || !newEvent.title || !newEvent.date || !newEvent.description) return;
+
+      setIsSaving(true);
+      try {
+          await addDoc(collection(db, 'calendar_events'), {
+              ...newEvent,
+              userId: currentUser.uid,
+              authorName: currentUser.displayName || '익명의 천문학자',
+              createdAt: Date.now()
+          });
+          setIsAddModalOpen(false);
+      } catch (error) {
+          console.error("Error adding event:", error);
+          alert("일정을 추가하는데 실패했습니다.");
+      } finally {
+          setIsSaving(false);
+      }
   };
 
   const renderDays = () => {
@@ -51,7 +130,7 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
     // Days of month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const events = astronomicalEvents2025.filter(e => e.date === dateStr);
+      const events = allEvents.filter(e => e.date === dateStr);
       const hasEvents = events.length > 0;
       const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
 
@@ -74,16 +153,21 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
           {hasEvents && (
             <div className="mt-1 space-y-1">
               {events.map((event, idx) => (
-                <div key={idx} className="hidden md:flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 truncate">
+                <div key={idx} className={`hidden md:flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border truncate ${
+                    event.type === 'user' 
+                    ? 'bg-purple-50 text-purple-700 border-purple-100' 
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                }`}>
                    {getEventIcon(event.type)}
                    <span className="truncate font-medium">{event.title}</span>
                 </div>
               ))}
               {/* Mobile Dot Indicator */}
-              <div className="md:hidden flex gap-1 mt-2 justify-center">
-                 {events.map((e, i) => (
+              <div className="md:hidden flex gap-1 mt-2 justify-center flex-wrap">
+                 {events.slice(0, 4).map((e, i) => (
                     <div key={i} className={`w-1.5 h-1.5 rounded-full ${getEventColor(e.type)}`} />
                  ))}
+                 {events.length > 4 && <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
               </div>
             </div>
           )}
@@ -99,6 +183,7 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
         case 'planet': return <div className="w-2 h-2 rounded-full bg-orange-400" />;
         case 'moon': 
         case 'eclipse': return <Moon size={10} className="text-gray-500" />;
+        case 'user': return <User size={10} className="text-purple-500" />;
         default: return <Info size={10} className="text-blue-500" />;
     }
   };
@@ -108,6 +193,7 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
         case 'meteor': return 'bg-yellow-400';
         case 'planet': return 'bg-orange-400';
         case 'eclipse': return 'bg-red-400';
+        case 'user': return 'bg-purple-400';
         default: return 'bg-blue-400';
     }
   };
@@ -115,15 +201,27 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-fade-in pb-32">
        {/* Header */}
-       <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-             <button onClick={onBack} className="md:hidden p-2 -ml-2 text-gray-500">
-                <ChevronLeft />
+       <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+             <div className="flex items-center gap-4">
+                <button onClick={onBack} className="md:hidden p-2 -ml-2 text-gray-500">
+                    <ChevronLeft />
+                </button>
+                <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 flex items-center gap-3">
+                <CalendarIcon className="text-space-accent" />
+                천문 달력
+                </h2>
+             </div>
+             
+             {/* Add Event Button (Mobile/Desktop) */}
+             <button 
+                onClick={openAddModal}
+                className="flex items-center gap-1 bg-space-accent hover:bg-cyan-600 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-md transition-all"
+             >
+                 <Plus size={16} />
+                 <span className="hidden md:inline">일정 추가</span>
+                 <span className="md:hidden">추가</span>
              </button>
-             <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 flex items-center gap-3">
-               <CalendarIcon className="text-space-accent" />
-               천문 달력
-             </h2>
           </div>
           
           <div className="flex items-center gap-4 bg-white shadow-sm border border-gray-200 rounded-full px-2 py-1 md:px-4 md:py-2">
@@ -161,7 +259,88 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-400"></div> 유성우</div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-400"></div> 행성 현상</div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-400"></div> 월식/일식</div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-purple-400"></div> 유저 제보</div>
        </div>
+
+       {/* Add Event Modal */}
+       {isAddModalOpen && (
+           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsAddModalOpen(false)}>
+               <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                   <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                       <h3 className="font-display font-bold text-lg text-gray-900">천문 일정 추가하기</h3>
+                       <button onClick={() => setIsAddModalOpen(false)}><X size={20} className="text-gray-400" /></button>
+                   </div>
+                   <form onSubmit={handleSaveEvent} className="p-6 space-y-4">
+                       <div>
+                           <label className="block text-xs font-bold text-gray-500 mb-1">제목</label>
+                           <input 
+                               type="text" 
+                               required
+                               placeholder="예: 우리 동네 스타파티" 
+                               value={newEvent.title}
+                               onChange={e => setNewEvent({...newEvent, title: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg p-2 focus:border-space-accent focus:outline-none"
+                           />
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                           <div>
+                               <label className="block text-xs font-bold text-gray-500 mb-1">날짜</label>
+                               <input 
+                                   type="date" 
+                                   required
+                                   value={newEvent.date}
+                                   onChange={e => setNewEvent({...newEvent, date: e.target.value})}
+                                   className="w-full border border-gray-300 rounded-lg p-2 focus:border-space-accent focus:outline-none"
+                               />
+                           </div>
+                           <div>
+                               <label className="block text-xs font-bold text-gray-500 mb-1">시간 (선택)</label>
+                               <input 
+                                   type="text" 
+                                   placeholder="예: 22:00" 
+                                   value={newEvent.time}
+                                   onChange={e => setNewEvent({...newEvent, time: e.target.value})}
+                                   className="w-full border border-gray-300 rounded-lg p-2 focus:border-space-accent focus:outline-none"
+                               />
+                           </div>
+                       </div>
+                       <div>
+                           <label className="block text-xs font-bold text-gray-500 mb-1">유형</label>
+                           <select 
+                               value={newEvent.type}
+                               onChange={e => setNewEvent({...newEvent, type: e.target.value as any})}
+                               className="w-full border border-gray-300 rounded-lg p-2 focus:border-space-accent focus:outline-none bg-white"
+                           >
+                               <option value="user">일반 관측/모임 (유저)</option>
+                               <option value="meteor">유성우</option>
+                               <option value="planet">행성 현상</option>
+                               <option value="eclipse">월식/일식</option>
+                               <option value="other">기타</option>
+                           </select>
+                       </div>
+                       <div>
+                           <label className="block text-xs font-bold text-gray-500 mb-1">설명</label>
+                           <textarea 
+                               required
+                               rows={3}
+                               placeholder="이벤트에 대한 자세한 설명을 적어주세요."
+                               value={newEvent.description}
+                               onChange={e => setNewEvent({...newEvent, description: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg p-2 focus:border-space-accent focus:outline-none resize-none"
+                           />
+                       </div>
+                       <button 
+                           type="submit" 
+                           disabled={isSaving}
+                           className="w-full bg-space-accent text-white font-bold py-3 rounded-lg hover:bg-cyan-600 transition-colors flex items-center justify-center gap-2"
+                       >
+                           <Save size={18} />
+                           {isSaving ? '저장 중...' : '일정 저장 및 공유'}
+                       </button>
+                   </form>
+               </div>
+           </div>
+       )}
 
        {/* Event Detail Modal */}
        {selectedDateEvents && (
@@ -193,6 +372,11 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack }) => {
                          <p className="text-gray-600 leading-relaxed text-sm font-serif">
                             {event.description}
                          </p>
+                         {event.authorName && (
+                             <p className="text-right text-xs text-gray-400 mt-2 flex justify-end items-center gap-1">
+                                 <User size={10} /> 제보: {event.authorName}
+                             </p>
+                         )}
                       </div>
                    ))}
                 </div>
