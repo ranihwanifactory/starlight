@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Star, Moon, Info, Plus, Clock, User, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Star, Moon, Info, Plus, Clock, User, Save, Trash2, Edit } from 'lucide-react';
 import { astronomicalEvents2025 } from '../data/astronomicalEvents';
 import { AstronomicalEvent, UserProfile } from '../types';
 import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
 interface CalendarProps {
   onBack: () => void;
@@ -13,14 +13,16 @@ interface CalendarProps {
 }
 
 const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, onLoginRequired }) => {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 0, 1)); // Start at Jan 2025
+  // 1. Initialize with current date instead of fixed 2025 date
+  const [currentDate, setCurrentDate] = useState(new Date()); 
   const [selectedDateEvents, setSelectedDateEvents] = useState<{ date: string, events: AstronomicalEvent[] } | null>(null);
   
   // Custom Events State
   const [customEvents, setCustomEvents] = useState<AstronomicalEvent[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
-  // Add Event Form State
+  // Edit/Add State
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState<Partial<AstronomicalEvent>>({
       type: 'user',
       date: new Date().toISOString().split('T')[0]
@@ -77,18 +79,18 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const events = allEvents.filter(e => e.date === dateStr);
     
-    // Allow clicking empty days to add event if logged in? 
-    // For now, only show details if event exists. To add event, use the button.
     if (events.length > 0) {
       setSelectedDateEvents({ date: dateStr, events });
     }
   };
 
+  // Open modal for CREATING a new event
   const openAddModal = () => {
       if (!currentUser) {
           onLoginRequired();
           return;
       }
+      setEditingEventId(null); // Reset editing state
       setNewEvent({
           type: 'user',
           date: new Date().toISOString().split('T')[0],
@@ -99,22 +101,59 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
       setIsAddModalOpen(true);
   };
 
+  // Open modal for EDITING an existing event
+  const openEditModal = (event: AstronomicalEvent) => {
+      if (!currentUser) return;
+      setEditingEventId(event.id || null);
+      setNewEvent({
+          ...event
+      });
+      setIsAddModalOpen(true);
+      setSelectedDateEvents(null); // Close detail view to avoid conflict
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+      if (!confirm("정말로 이 일정을 삭제하시겠습니까?")) return;
+      
+      try {
+          await deleteDoc(doc(db, "calendar_events", eventId));
+          setSelectedDateEvents(null); // Close detail view
+      } catch (error) {
+          console.error("Error deleting event:", error);
+          alert("삭제 중 오류가 발생했습니다.");
+      }
+  };
+
   const handleSaveEvent = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!currentUser || !newEvent.title || !newEvent.date || !newEvent.description) return;
 
       setIsSaving(true);
       try {
-          await addDoc(collection(db, 'calendar_events'), {
-              ...newEvent,
-              userId: currentUser.uid,
-              authorName: currentUser.displayName || '익명의 천문학자',
-              createdAt: Date.now()
-          });
+          if (editingEventId) {
+              // Update existing event
+              const eventRef = doc(db, 'calendar_events', editingEventId);
+              await updateDoc(eventRef, {
+                  title: newEvent.title,
+                  date: newEvent.date,
+                  time: newEvent.time,
+                  type: newEvent.type,
+                  description: newEvent.description,
+                  // Don't update userId or createdAt
+              });
+          } else {
+              // Create new event
+              await addDoc(collection(db, 'calendar_events'), {
+                  ...newEvent,
+                  userId: currentUser.uid,
+                  authorName: currentUser.displayName || '익명의 천문학자',
+                  createdAt: Date.now()
+              });
+          }
           setIsAddModalOpen(false);
       } catch (error) {
-          console.error("Error adding event:", error);
-          alert("일정을 추가하는데 실패했습니다.");
+          console.error("Error saving event:", error);
+          alert("일정을 저장하는데 실패했습니다.");
       } finally {
           setIsSaving(false);
       }
@@ -262,12 +301,14 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-purple-400"></div> 유저 제보</div>
        </div>
 
-       {/* Add Event Modal */}
+       {/* Add/Edit Event Modal */}
        {isAddModalOpen && (
            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsAddModalOpen(false)}>
                <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
                    <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                       <h3 className="font-display font-bold text-lg text-gray-900">천문 일정 추가하기</h3>
+                       <h3 className="font-display font-bold text-lg text-gray-900">
+                           {editingEventId ? '천문 일정 수정' : '천문 일정 추가'}
+                       </h3>
                        <button onClick={() => setIsAddModalOpen(false)}><X size={20} className="text-gray-400" /></button>
                    </div>
                    <form onSubmit={handleSaveEvent} className="p-6 space-y-4">
@@ -335,7 +376,7 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
                            className="w-full bg-space-accent text-white font-bold py-3 rounded-lg hover:bg-cyan-600 transition-colors flex items-center justify-center gap-2"
                        >
                            <Save size={18} />
-                           {isSaving ? '저장 중...' : '일정 저장 및 공유'}
+                           {isSaving ? '저장 중...' : (editingEventId ? '수정 완료' : '일정 저장 및 공유')}
                        </button>
                    </form>
                </div>
@@ -362,12 +403,35 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
                 <div className="p-6 max-h-[60vh] overflow-y-auto">
                    {selectedDateEvents.events.map((event, idx) => (
                       <div key={idx} className="mb-6 last:mb-0 border-b border-gray-100 last:border-0 pb-6 last:pb-0">
-                         <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white ${getEventColor(event.type)}`}>
-                                {event.type === 'meteor' ? 'Meteor Shower' : event.type.toUpperCase()}
-                            </span>
-                            {event.time && <span className="text-xs text-gray-500 flex items-center gap-1"><ClockIcon size={12} /> {event.time}</span>}
+                         <div className="flex justify-between items-start">
+                             <div className="flex items-center gap-2 mb-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white ${getEventColor(event.type)}`}>
+                                    {event.type === 'meteor' ? 'Meteor Shower' : event.type.toUpperCase()}
+                                </span>
+                                {event.time && <span className="text-xs text-gray-500 flex items-center gap-1"><ClockIcon size={12} /> {event.time}</span>}
+                             </div>
+                             
+                             {/* Actions for User's Own Events */}
+                             {currentUser && event.userId === currentUser.uid && event.id && (
+                                 <div className="flex gap-1">
+                                     <button 
+                                        onClick={() => openEditModal(event)}
+                                        className="p-1 text-gray-400 hover:text-space-accent hover:bg-gray-100 rounded-full transition-colors"
+                                        title="수정"
+                                     >
+                                         <Edit size={14} />
+                                     </button>
+                                     <button 
+                                        onClick={() => handleDeleteEvent(event.id!)}
+                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                        title="삭제"
+                                     >
+                                         <Trash2 size={14} />
+                                     </button>
+                                 </div>
+                             )}
                          </div>
+
                          <h4 className="text-xl font-bold text-gray-900 mb-2">{event.title}</h4>
                          <p className="text-gray-600 leading-relaxed text-sm font-serif">
                             {event.description}
