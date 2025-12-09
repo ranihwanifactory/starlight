@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
         <div className="text-center md:text-left space-y-2">
           <div className="flex items-center justify-center md:justify-start gap-2 text-gray-800 font-display font-bold">
              <Telescope size={16} className="text-space-accent" />
-             <span>우주스타그램</span>
+             <span>UJU</span>
           </div>
           <div className="text-xs text-gray-500 font-sans space-y-1">
              <p>hwanace@naver.com</p>

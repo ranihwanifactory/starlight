@@ -1,6 +1,7 @@
+
 {
-  "name": "우주스타그램",
-  "description": "아빠와 아들이 함께 우주를 관찰하고 기록하는 우주스타그램입니다. AI로 강화된 기록 기능과 소셜 기능을 제공합니다.",
+  "name": "UJU",
+  "description": "아빠와 아들이 함께 우주를 관찰하고 기록하는 UJU입니다. AI로 강화된 기록 기능과 소셜 기능을 제공합니다.",
   "requestFramePermissions": [
     "camera",
     "microphone",

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Star, Moon, Info, Plus, Clock, User, Save, Trash2, Edit } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Star, Moon, Info, Plus, Clock, User, Save, Trash2, Edit, List } from 'lucide-react';
 import { astronomicalEvents2025 } from '../data/astronomicalEvents';
 import { AstronomicalEvent, UserProfile } from '../types';
 import { db } from '../firebase';
@@ -67,6 +67,16 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
     "7월", "8월", "9월", "10월", "11월", "12월"
   ];
 
+  // List View Logic: Filter events for the current month
+  const currentMonthEvents = useMemo(() => {
+    const startStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const endStr = `${year}-${String(month + 1).padStart(2, '0')}-${daysInMonth}`;
+    
+    return allEvents
+      .filter(e => e.date >= startStr && e.date <= endStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [allEvents, year, month, daysInMonth]);
+
   const handlePrevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
   };
@@ -82,6 +92,13 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
     if (events.length > 0) {
       setSelectedDateEvents({ date: dateStr, events });
     }
+  };
+
+  const openDateDetail = (dateStr: string) => {
+      const events = allEvents.filter(e => e.date === dateStr);
+      if (events.length > 0) {
+          setSelectedDateEvents({ date: dateStr, events });
+      }
   };
 
   // Open modal for CREATING a new event
@@ -237,6 +254,17 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
     }
   };
 
+  // Helper for List View styles
+  const getEventStyles = (type: string) => {
+    switch (type) {
+      case 'meteor': return 'bg-yellow-50 text-yellow-600 border-yellow-100';
+      case 'planet': return 'bg-orange-50 text-orange-600 border-orange-100';
+      case 'eclipse': return 'bg-red-50 text-red-600 border-red-100';
+      case 'user': return 'bg-purple-50 text-purple-600 border-purple-100';
+      default: return 'bg-blue-50 text-blue-600 border-blue-100';
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-fade-in pb-32">
        {/* Header */}
@@ -299,6 +327,56 @@ const AstronomicalCalendar: React.FC<CalendarProps> = ({ onBack, currentUser, on
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-400"></div> 행성 현상</div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-400"></div> 월식/일식</div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-purple-400"></div> 유저 제보</div>
+       </div>
+
+       {/* Monthly Event List */}
+       <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+            <h3 className="font-display font-bold text-lg text-gray-900 flex items-center gap-2">
+              <List size={20} className="text-space-accent" />
+              이 달의 천문 현상 ({currentMonthEvents.length})
+            </h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {currentMonthEvents.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 text-sm font-serif">
+                이 달에는 등록된 천문 현상이 없습니다.
+              </div>
+            ) : (
+              currentMonthEvents.map((event, idx) => (
+                <div 
+                  key={event.id || `${event.date}-${idx}`}
+                  onClick={() => openDateDetail(event.date)}
+                  className="p-4 hover:bg-blue-50 transition-colors cursor-pointer flex items-center gap-4 group"
+                >
+                   {/* Date Box */}
+                   <div className="flex-shrink-0 w-14 text-center border-r border-gray-100 pr-4">
+                      <div className="text-xs font-bold text-gray-400 uppercase">{new Date(event.date).toLocaleDateString('en-US', { month: 'short' })}</div>
+                      <div className="text-xl font-display font-bold text-gray-900">{new Date(event.date).getDate()}</div>
+                   </div>
+
+                   {/* Icon */}
+                   <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border ${getEventStyles(event.type)}`}>
+                      {getEventIcon(event.type)}
+                   </div>
+
+                   {/* Content */}
+                   <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                         <h4 className="font-bold text-gray-900 truncate group-hover:text-space-accent transition-colors">{event.title}</h4>
+                         {event.type === 'user' && <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 rounded font-bold">USER</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{event.description}</p>
+                   </div>
+                   
+                   {/* Time or Arrow */}
+                   <div className="hidden md:flex flex-col items-end text-xs text-gray-400 whitespace-nowrap">
+                      {event.time && <span className="flex items-center gap-1"><ClockIcon size={10} /> {event.time}</span>}
+                   </div>
+                </div>
+              ))
+            )}
+          </div>
        </div>
 
        {/* Add/Edit Event Modal */}

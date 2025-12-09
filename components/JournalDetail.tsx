@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { JournalEntry, UserProfile, Comment } from '../types';
 import { db } from '../firebase';
@@ -60,7 +61,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
     // Generate Deep Link
     const baseUrl = window.location.origin + window.location.pathname;
     const shareUrl = `${baseUrl}?entry=${entry.id}`;
-    const shareTitle = `우주스타그램: ${entry.title}`;
+    const shareTitle = `UJU: ${entry.title}`;
     const shareText = `${entry.observers} 대원의 우주 관측 기록을 확인해보세요!\n관측 대상: ${entry.target}\n\n`;
 
     try {
