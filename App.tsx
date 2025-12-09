@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -7,7 +8,8 @@ import { JournalEntry, UserProfile, ViewState } from './types';
 // Components
 import StarBackground from './components/StarBackground';
 import JournalList from './components/JournalList';
-import JournalMap from './components/JournalMap'; // New Map Component
+import JournalMap from './components/JournalMap'; 
+import AstronomicalCalendar from './components/AstronomicalCalendar'; // New Component
 import JournalEditor from './components/JournalEditor';
 import JournalDetail from './components/JournalDetail';
 import AuthModal from './components/AuthModal';
@@ -15,7 +17,7 @@ import UserProfileModal from './components/UserProfileModal';
 import Logo from './components/Logo'; 
 
 // Icons
-import { Rocket, PlusSquare, LogOut, User, Download, Heart, Settings, Map, List } from 'lucide-react';
+import { Rocket, PlusSquare, LogOut, User, Download, Heart, Settings, Map, List, Calendar } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -214,7 +216,7 @@ const App: React.FC = () => {
   const toggleViewMode = () => {
     if (view === ViewState.HOME) {
         setView(ViewState.MAP);
-    } else if (view === ViewState.MAP) {
+    } else {
         setView(ViewState.HOME);
     }
   };
@@ -233,28 +235,46 @@ const App: React.FC = () => {
             </div>
 
             {/* Actions area */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {deferredPrompt && (
                 <button onClick={handleInstallClick} className="text-gray-700 hover:text-space-accent">
                    <Download size={24} />
                 </button>
               )}
               
-              {/* Map Toggle Button */}
-              <button 
-                onClick={toggleViewMode} 
-                className={`text-gray-700 transition-colors ${view === ViewState.MAP ? 'text-space-accent' : 'hover:text-space-accent'}`}
-                title={view === ViewState.MAP ? "리스트 보기" : "지도 보기"}
-              >
-                {view === ViewState.MAP ? <List size={24} /> : <Map size={24} />}
-              </button>
+              {/* View Toggles */}
+              <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+                  <button 
+                    onClick={() => setView(ViewState.HOME)}
+                    className={`p-1.5 rounded-md transition-all ${view === ViewState.HOME ? 'bg-white shadow text-space-accent' : 'text-gray-500 hover:text-gray-900'}`}
+                    title="리스트 보기"
+                  >
+                    <List size={20} />
+                  </button>
+                  <button 
+                    onClick={() => setView(ViewState.MAP)}
+                    className={`p-1.5 rounded-md transition-all ${view === ViewState.MAP ? 'bg-white shadow text-space-accent' : 'text-gray-500 hover:text-gray-900'}`}
+                    title="지도 보기"
+                  >
+                    <Map size={20} />
+                  </button>
+                  <button 
+                    onClick={() => setView(ViewState.CALENDAR)}
+                    className={`p-1.5 rounded-md transition-all ${view === ViewState.CALENDAR ? 'bg-white shadow text-space-accent' : 'text-gray-500 hover:text-gray-900'}`}
+                    title="천문 달력"
+                  >
+                    <Calendar size={20} />
+                  </button>
+              </div>
+
+              <div className="w-px h-6 bg-gray-200 mx-1"></div>
 
               <button onClick={handleCreateClick} className="text-gray-700 hover:text-space-accent transition-colors">
                  <PlusSquare size={24} />
               </button>
 
               {user ? (
-                 <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-3 ml-2">
                    <button 
                     onClick={() => setProfileModalOpen(true)}
                     className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 hover:border-space-accent transition-all"
@@ -267,12 +287,12 @@ const App: React.FC = () => {
                        </div>
                      )}
                    </button>
-                   <button onClick={handleLogout} className="text-gray-700 hover:text-red-500 transition-colors">
+                   <button onClick={handleLogout} className="text-gray-700 hover:text-red-500 transition-colors hidden md:block">
                      <LogOut size={24} />
                    </button>
                  </div>
               ) : (
-                <button onClick={() => setAuthModalOpen(true)} className="text-sm font-bold text-space-accent">
+                <button onClick={() => setAuthModalOpen(true)} className="text-sm font-bold text-space-accent ml-2 whitespace-nowrap">
                   로그인
                 </button>
               )}
@@ -302,6 +322,12 @@ const App: React.FC = () => {
            </div>
         )}
 
+        {view === ViewState.CALENDAR && (
+           <div className="px-4 md:px-6 max-w-7xl mx-auto">
+             <AstronomicalCalendar onBack={() => setView(ViewState.HOME)} />
+           </div>
+        )}
+
         {view === ViewState.CREATE && user && (
            <div className="px-4">
             <JournalEditor 
@@ -320,6 +346,7 @@ const App: React.FC = () => {
             onBack={handleBackToHome}
             onEdit={handleEditEntry}
             onDelete={handleDeleteEntry}
+            onLoginRequired={() => setAuthModalOpen(true)}
           />
         )}
       </main>

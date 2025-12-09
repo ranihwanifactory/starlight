@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { JournalEntry, UserProfile, Comment } from '../types';
 import { db } from '../firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon, UserPlus, UserCheck, Heart, MessageCircle, Send, User, Sparkles } from 'lucide-react';
+import { ArrowLeft, Share2, Calendar, MapPin, Telescope, Users, Clock, Trash2, Edit, ExternalLink, ImageIcon, UserPlus, UserCheck, Heart, MessageCircle, Send, User, Sparkles, X, Check } from 'lucide-react';
 import { getLocationInfo } from '../services/geminiService';
 
 interface JournalDetailProps {
@@ -11,9 +11,10 @@ interface JournalDetailProps {
   onBack: () => void;
   onEdit: (entry: JournalEntry) => void;
   onDelete: (entryId: string) => void;
+  onLoginRequired: () => void;
 }
 
-const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBack, onEdit, onDelete }) => {
+const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBack, onEdit, onDelete, onLoginRequired }) => {
   const isOwner = currentUser?.uid === entry.userId;
   const isFollowing = currentUser?.following?.includes(entry.userId);
   
@@ -25,6 +26,10 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
   const comments = entry.comments || [];
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+
+  // Comment Editing State
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
 
   // AI Location Info
   const [aiLocationInfo, setAiLocationInfo] = useState<{text: string, links: {title: string, uri: string}[]} | null>(null);
@@ -100,7 +105,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
 
   const handleFollow = async () => {
     if (!currentUser) {
-      alert("로그인이 필요합니다.");
+      onLoginRequired();
       return;
     }
     
@@ -133,7 +138,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
 
   const toggleLike = async () => {
     if (!currentUser) {
-      alert("좋아요를 누르려면 로그인이 필요합니다.");
+      onLoginRequired();
       return;
     }
     if (!entry.id) return;
@@ -153,7 +158,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
   const submitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
-      alert("댓글을 작성하려면 로그인이 필요합니다.");
+      onLoginRequired();
       return;
     }
     if (!newComment.trim() || !entry.id) return;
@@ -178,6 +183,57 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
       alert("댓글 작성에 실패했습니다.");
     } finally {
       setCommentLoading(false);
+    }
+  };
+
+  // --- Comment Edit/Delete Handlers ---
+
+  const startEditingComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingText(comment.text);
+  };
+
+  const cancelEditingComment = () => {
+    setEditingCommentId(null);
+    setEditingText('');
+  };
+
+  const saveEditedComment = async (commentId: string) => {
+    if (!entry.id || !editingText.trim()) return;
+
+    // We must update the entire array to modify one item
+    const updatedComments = comments.map(c => {
+        if (c.id === commentId) {
+            return { ...c, text: editingText };
+        }
+        return c;
+    });
+
+    try {
+        await updateDoc(doc(db, 'journals', entry.id), {
+            comments: updatedComments
+        });
+        setEditingCommentId(null);
+        setEditingText('');
+    } catch (e) {
+        console.error("Error updating comment", e);
+        alert("댓글 수정에 실패했습니다.");
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!entry.id || !window.confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
+
+    // We filter out the deleted item
+    const updatedComments = comments.filter(c => c.id !== commentId);
+
+    try {
+        await updateDoc(doc(db, 'journals', entry.id), {
+            comments: updatedComments
+        });
+    } catch (e) {
+        console.error("Error deleting comment", e);
+        alert("댓글 삭제에 실패했습니다.");
     }
   };
 
@@ -236,7 +292,7 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
                <span className="font-bold text-gray-900">{entry.observers}</span>
              </div>
              
-             {currentUser && !isOwner && (
+             {!isOwner && (
                <button 
                  onClick={handleFollow}
                  className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all ${
@@ -387,17 +443,20 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
                 <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder={currentUser ? "이 관측에 대한 생각을 남겨주세요..." : "로그인 후 댓글을 남길 수 있습니다."}
+                  onClick={() => !currentUser && onLoginRequired()}
+                  readOnly={!currentUser}
+                  placeholder={currentUser ? "이 관측에 대한 생각을 남겨주세요..." : "댓글을 작성하려면 터치하여 로그인하세요."}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 pr-12 focus:outline-none focus:border-space-accent focus:bg-white transition-all resize-none h-24"
-                  disabled={!currentUser}
                 />
-                <button 
-                  type="submit" 
-                  disabled={!currentUser || !newComment.trim() || commentLoading}
-                  className="absolute bottom-3 right-3 p-2 bg-space-accent text-white rounded-full hover:bg-cyan-600 disabled:opacity-50 disabled:hover:bg-space-accent transition-colors"
-                >
-                  <Send size={16} />
-                </button>
+                {currentUser && (
+                    <button 
+                    type="submit" 
+                    disabled={!newComment.trim() || commentLoading}
+                    className="absolute bottom-3 right-3 p-2 bg-space-accent text-white rounded-full hover:bg-cyan-600 disabled:opacity-50 disabled:hover:bg-space-accent transition-colors"
+                    >
+                    <Send size={16} />
+                    </button>
+                )}
               </div>
             </div>
           </form>
@@ -413,14 +472,68 @@ const JournalDetail: React.FC<JournalDetailProps> = ({ entry, currentUser, onBac
                     <User size={18} className="text-gray-400" />
                   </div>
                   <div className="flex-1">
-                    <div className="bg-gray-50 rounded-xl rounded-tl-none p-4 inline-block min-w-[200px]">
-                      <div className="flex items-center justify-between mb-1 gap-4">
-                        <span className="font-bold text-sm text-gray-900">{comment.userName}</span>
-                        <span className="text-[10px] text-gray-400">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{comment.text}</p>
+                    <div className="bg-gray-50 rounded-xl rounded-tl-none p-4 inline-block min-w-[200px] w-full md:w-auto relative group-comment">
+                      
+                      {/* Edit Mode vs View Mode */}
+                      {editingCommentId === comment.id ? (
+                          <div className="w-full min-w-[250px]">
+                              <textarea 
+                                  value={editingText}
+                                  onChange={(e) => setEditingText(e.target.value)}
+                                  className="w-full bg-white border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-space-accent mb-2 font-serif"
+                                  rows={3}
+                                  autoFocus
+                              />
+                              <div className="flex justify-end gap-2">
+                                  <button 
+                                    onClick={cancelEditingComment} 
+                                    className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-200 rounded-full transition-colors"
+                                    title="취소"
+                                  >
+                                      <X size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => saveEditedComment(comment.id)} 
+                                    className="p-1.5 text-space-accent hover:text-white hover:bg-space-accent rounded-full transition-colors"
+                                    title="저장"
+                                  >
+                                      <Check size={16} />
+                                  </button>
+                              </div>
+                          </div>
+                      ) : (
+                          <>
+                            <div className="flex items-center justify-between mb-1 gap-4">
+                                <span className="font-bold text-sm text-gray-900">{comment.userName}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-gray-400">
+                                    {new Date(comment.createdAt).toLocaleDateString()}
+                                    </span>
+                                    
+                                    {/* Action Buttons for Comment Owner */}
+                                    {currentUser?.uid === comment.userId && (
+                                        <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={() => startEditingComment(comment)}
+                                                className="text-gray-400 hover:text-blue-500 p-1 hover:bg-blue-50 rounded-full"
+                                                title="수정"
+                                            >
+                                                <Edit size={12} />
+                                            </button>
+                                            <button 
+                                                onClick={() => deleteComment(comment.id)}
+                                                className="text-gray-400 hover:text-red-500 p-1 hover:bg-red-50 rounded-full"
+                                                title="삭제"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed break-words">{comment.text}</p>
+                          </>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+
 export interface Comment {
   id: string;
   userId: string;
@@ -42,7 +43,16 @@ export interface UserProfile {
 
 export enum ViewState {
   HOME = 'HOME',
-  MAP = 'MAP', // Added Map View
+  MAP = 'MAP',
+  CALENDAR = 'CALENDAR', // Added Calendar View
   CREATE = 'CREATE',
   DETAIL = 'DETAIL',
+}
+
+export interface AstronomicalEvent {
+  date: string; // YYYY-MM-DD
+  title: string;
+  description: string;
+  time?: string;
+  type: 'meteor' | 'planet' | 'moon' | 'eclipse' | 'other';
 }
